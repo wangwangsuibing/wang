@@ -1,0 +1,865 @@
+﻿<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8"/>
+<script>
+(function(){var t=new URLSearchParams(window.location.search).get('theme')||localStorage.getItem('simone-theme')||'light';document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('simone-theme',t);}catch(e){}})();
+</script>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dataverse · 场景管理</title>
+<style>
+
+:root{--sidebar-w:240px;--pad:14px;--gap:14px;--r-3:var(--r-xl);--t:var(--dur-base) var(--ease-out);--t-fast:var(--dur-fast) var(--ease-out);}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--color-bg-app);color:var(--color-text-1);font-family:var(--font-sans);font-size:14px;line-height:1.5;letter-spacing:-.01em;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{border:0;background:none;padding:0;cursor:pointer}
+input,textarea{outline:none}
+:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--r-md)}
+.app{height:100vh;padding:var(--pad);display:flex;gap:var(--gap);align-items:stretch}
+/* Sidebar */
+.gside{width:var(--sidebar-w);flex-shrink:0;border-radius:var(--r-3);background:var(--color-surface-1);border:1px solid var(--color-border);box-shadow:var(--shadow-md);display:grid;grid-template-rows:auto 1fr auto;overflow:visible;position:relative}
+.ghead{position:relative;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:16px 14px;border-bottom:1px solid var(--color-table-border);background:url('mq8s9unp-logo-BG.png') left center/cover no-repeat;border-radius:12px 12px 0 0;min-height:84px}
+.ghead-row{display:flex;align-items:center;gap:9px}
+.logo{display:flex;align-items:center;flex-shrink:0}
+.logo-svg{width:28px;height:26px;display:block}
+.brand-name{font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1}
+.brand-ver{font-size:12px;color:var(--color-text-4);font-family:var(--font-mono);padding-left:37px}
+.gnav{padding:8px 8px 8px;margin-top:16px;display:grid;align-content:start;gap:1px;overflow-y:auto;overflow-x:hidden}
+.gitem{display:grid;grid-template-columns:16px 1fr auto;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid transparent;color:var(--color-text-2);cursor:pointer;user-select:none;font-size:14px;transition:background var(--t),border-color var(--t),color var(--t)}
+.gitem:hover{background:var(--color-sidebar-item-hover);border-color:var(--color-border);color:var(--color-text-1)}
+.gitem.expanded{color:var(--color-text-1);font-weight:500}
+.ic-w{width:16px;height:16px;display:grid;place-items:center;color:var(--color-text-3)}
+.ic-w svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.chev{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;transition:transform var(--t)}
+.gitem.expanded .chev{transform:rotate(90deg)}
+.gsub{display:none;padding-left:6px}
+.gsub.show{display:block}
+.gsubitem{height:36px;padding:0 10px 0 28px;display:flex;align-items:center;gap:7px;border-radius:var(--r-md);border:1px solid transparent;color:var(--color-sidebar-fg);font-size:13px;cursor:pointer;user-select:none;transition:background var(--t),color var(--t);position:relative}
+.gsubitem:hover{background:var(--color-sidebar-item-hover);color:var(--color-text-1)}
+.gsubitem.active{background:var(--color-sidebar-item-active);border-color:transparent;color:var(--color-sidebar-fg-active);font-weight:500}
+.gsubitem.active::before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:2.5px;border-radius:0 var(--r-pill) var(--r-pill) 0;background:var(--color-sidebar-active-bar)}
+.bdot{width:6px;height:6px;border-radius:50%;background:var(--color-sidebar-active-bar);flex-shrink:0;margin-left:auto}
+.gfoot{border-top:1px solid var(--color-table-border);padding:8px 12px;display:flex;align-items:center;gap:8px;position:relative;z-index:1000}
+.user-row{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:center;flex:1;min-width:0}
+.avatar{width:28px;height:28px;border-radius:8px;background:rgba(41,151,255,.10);border:1px solid rgba(41,151,255,.2);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--color-accent)}
+.user-row strong{display:block;font-size:12px;font-weight:600}
+.user-row span{display:block;font-size:12px;color:var(--color-text-3);margin-top:1px}
+.gfoot-icons{display:flex;align-items:center;gap:4px;flex-shrink:0}
+/* Main */
+.main{flex:1;min-width:0;border-radius:var(--r-3);background:var(--color-surface-1);border:1px solid var(--color-border);box-shadow:var(--shadow-md);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
+.table-scroller{flex:1;min-height:0;overflow:visible;}
+.breadcrumb{height:38px;padding:0 16px;display:flex;align-items:center;gap:5px;border-bottom:1px solid var(--color-table-border);font-size:12px;color:var(--color-text-3);flex-shrink:0}
+.breadcrumb a{color:var(--color-text-3)}
+.breadcrumb .sep{color:rgba(0,0,0,.22)}
+.breadcrumb .cur{color:var(--color-text-1);font-weight:500}
+.bc-end{margin-left:auto;display:flex;align-items:center;gap:6px}
+/* Stat cards */
+.stat-row{display:flex;gap:10px;padding:12px 16px;flex-shrink:0;border-bottom:1px solid var(--color-table-border)}
+.stat-card{flex:1;background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.stat-label{font-size:12px;color:var(--color-text-3)}
+.stat-value{font-size:22px;font-weight:700;font-family:var(--font-mono);color:var(--color-text-1);font-variant-numeric:tabular-nums;line-height:1.2}
+.stat-card.accent .stat-value{color:var(--color-accent)}
+/* Toolbar */
+.toolbar{padding:8px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--color-table-border);flex-shrink:0}
+.toolbar .sep{width:1px;height:18px;background:var(--color-border);margin:0 4px;flex-shrink:0}
+.toolbar-end{margin-left:auto;display:flex;align-items:center;gap:6px}
+/* Filter */
+.filterbar{padding:6px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--color-table-border);flex-shrink:0;position:sticky;top:0;z-index:20;isolation:isolate;will-change:transform;backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);background:rgba(var(--filterbar-glass-rgb),0.88);box-shadow:0 2px 20px rgba(0,0,0,0.06),0 1px 0 rgba(0,0,0,0.04)}
+.fsel{height:32px;border-radius:var(--r-1);border:1px solid var(--color-border);background:var(--color-surface-2);color:var(--color-text-1);font-size:13px;padding:0 10px;cursor:pointer;display:flex;align-items:center;gap:4px;user-select:none;white-space:nowrap;position:relative}
+.fsel svg{width:9px;height:9px;fill:none;stroke:var(--color-text-4);stroke-width:2;stroke-linecap:round}
+.fsep{width:1px;height:16px;background:var(--color-border);flex-shrink:0}
+.search-inline{height:32px;border-radius:var(--r-1);border:1px solid var(--color-border);background:var(--color-surface-2);display:grid;grid-template-columns:28px 1fr;align-items:center;overflow:hidden;min-width:150px}
+.search-inline:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px var(--color-accent-bg)}
+.si-ico{display:grid;place-items:center;color:var(--color-text-4)}
+.si-ico svg{width:11px;height:11px}
+.search-inline input{border:0;background:transparent;color:var(--color-text-1);font-size:13px}
+.search-inline input::placeholder{color:var(--color-text-4)}
+.filter-dd{position:absolute;top:calc(100% + 4px);left:0;min-width:150px;background:var(--color-surface-1);border:1px solid var(--color-border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.13);padding:4px;z-index:160;display:none}
+.filter-dd.open{display:block}
+.filter-opt{padding:7px 12px;font-size:13px;color:var(--color-text-1);cursor:pointer;border-radius:7px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.filter-opt:hover{background:var(--color-surface-2)}
+.filter-opt.checked{color:var(--color-accent);font-weight:500}
+/* More filter */
+.more-filter-panel{background:var(--color-surface-1);border-top:1px solid var(--color-table-border);padding:12px 16px;gap:10px;flex-wrap:wrap;align-items:flex-end;display:none}
+.more-filter-panel.open{display:flex}
+.mfp-group{display:flex;flex-direction:column;gap:4px;min-width:140px}
+.mfp-label{font-size:12px;color:var(--color-text-2);font-weight:500}
+.mfp-input,.mfp-select{height:32px;border:1px solid var(--color-border);border-radius:8px;padding:0 10px;font-size:13px;background:var(--color-surface-2);color:var(--color-text-1);outline:none}
+.mfp-input:focus,.mfp-select:focus{border-color:var(--color-accent)}
+/* Sel bar */
+.sel-bar{padding:5px 14px;display:none;align-items:center;gap:8px;background:var(--color-accent-bg);border-bottom:1px solid var(--color-accent-border);flex-shrink:0;font-size:12px;color:var(--color-accent)}
+.sel-bar.show{display:flex}
+/* Table */
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+thead th{position:sticky;top:0;background:var(--color-table-header-bg);color:var(--color-text-3);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:10px 12px;text-align:left;border-bottom:1px solid var(--color-table-border);white-space:nowrap;z-index:2}
+tbody tr{transition:background var(--t)}
+tbody tr:hover{background:var(--color-table-row-hover)}
+tbody tr.selected{background:var(--color-table-row-selected)}
+tbody td{padding:11px 12px;font-size:13px;color:var(--color-text-1);border-bottom:1px solid var(--color-table-border);vertical-align:middle}
+.cb-cell{width:40px;text-align:center}
+.cb-wrap{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--color-border-strong);background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .12s,background .12s}
+.cb-wrap.checked{background:var(--color-accent);border-color:var(--color-accent)}
+.cb-wrap.checked::after{content:'';display:block;width:4px;height:7px;border:2px solid #fff;border-top:0;border-left:0;transform:rotate(45deg) translate(-1px,-1px)}
+.id-cell{font-family:var(--font-mono);font-size:12px;color:var(--color-text-4);width:90px}
+.name-cell{font-weight:500;color:var(--color-text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
+.avail-pill{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:500}
+.avail-on{background:var(--color-status-on-bg);color:var(--color-status-on);border:1px solid var(--color-status-on-border)}
+.avail-off{background:var(--color-status-off-bg);color:var(--color-status-off);border:1px solid rgba(128,128,135,.22)}
+.avail-warn{background:var(--color-warning-bg);color:var(--color-warning);border:1px solid var(--color-warning-border)}
+.type-pill{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap}
+.tp-world{background:var(--color-tag-blue-bg);color:var(--color-tag-blue);border:1px solid var(--color-tag-blue-border)}
+.tp-log{background:var(--color-tag-green-bg);color:var(--color-tag-green);border:1px solid var(--color-tag-green-border)}
+.tp-replay{background:var(--color-tag-purple-bg);color:var(--color-tag-purple);border:1px solid var(--color-tag-purple-border)}
+.tag{height:20px;padding:0 6px;border-radius:4px;font-size:11px;font-weight:500;display:inline-flex;align-items:center;background:var(--color-tag-gray-bg);color:var(--color-tag-gray);border:1px solid var(--color-tag-gray-border)}
+.mono-val{font-family:var(--font-mono);font-size:12px;color:var(--color-text-3)}
+.op-link{font-size:13px;color:var(--color-accent);cursor:pointer;white-space:nowrap}
+.op-link:hover{text-decoration:underline}
+.op-sep{color:var(--color-border-strong);margin:0 4px}
+/* Pagination */
+.pagination{padding:6px 14px;border-top:1px solid var(--color-table-border);display:flex;align-items:center;gap:8px;flex-shrink:0;position:sticky;bottom:0;z-index:20;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);background:rgba(var(--filterbar-glass-rgb),0.88);box-shadow:0 2px 20px rgba(0,0,0,0.06),0 1px 0 rgba(0,0,0,0.04)}
+.pag-l{font-size:12px;color:var(--color-text-3);white-space:nowrap;flex-shrink:0}
+.pag-c{display:flex;align-items:center;gap:3px;margin:0 auto}
+.pag-btn{height:27px;min-width:27px;padding:0 6px;border-radius:6px;border:1px solid transparent;font-size:12px;color:var(--color-text-3);cursor:pointer;display:grid;place-items:center;transition:background var(--t),border-color var(--t),color var(--t)}
+.pag-btn:hover{background:var(--color-surface-2);color:var(--color-text-1)}
+.pag-btn.active{background:var(--color-accent-bg);border-color:var(--color-accent-border);color:var(--color-accent);font-weight:600}
+.pag-btn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.pag-r{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.goto{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-3)}
+.goto input{width:40px;height:27px;border-radius:6px;border:1px solid var(--color-border);background:var(--color-surface-2);text-align:center;font-size:12px;color:var(--color-text-1);outline:none}
+/* Buttons */
+.btn{height:32px;padding:0 14px;border-radius:var(--r-md);border:1px solid var(--btn-default-border);background:var(--btn-default-bg);color:var(--color-text-1);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:background var(--t),border-color var(--t),color var(--t);user-select:none}
+.btn:hover{background:var(--btn-default-hover)}
+.btn:disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+.btn.primary{background:var(--color-accent);border-color:var(--color-accent);color:#ffffff}
+.btn.primary:hover{background:var(--color-accent-hover);color:#ffffff}
+.btn.danger{background:var(--color-danger-bg);border-color:var(--color-danger-border);color:var(--color-danger)}
+.btn.sm{height:26px;padding:0 9px;font-size:12px}
+.btn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.icon-btn{width:28px;height:28px;border-radius:var(--r-md);border:1px solid var(--color-border);background:var(--color-surface-1);display:grid;place-items:center;cursor:pointer;color:var(--color-text-2);transition:background var(--t),border-color var(--t),color var(--t)}
+.icon-btn:hover{border-color:var(--color-border-strong);color:var(--color-text-1)}
+.icon-btn.active{background:var(--color-accent-bg);border-color:var(--color-accent-border);color:var(--color-accent)}
+.icon-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+/* Dropdown */
+.dd-menu{position:absolute;background:var(--color-surface-1);border:1px solid var(--color-border);border-radius:9px;box-shadow:var(--shadow-md);z-index:100;display:none;padding:4px;min-width:120px}
+.dd-menu.open{display:block}
+.dd-item{padding:6px 10px;border-radius:6px;font-size:13px;color:var(--color-text-2);cursor:pointer;transition:background var(--t),color var(--t);white-space:nowrap;display:flex;align-items:center;gap:8px}
+.dd-item:hover{background:var(--color-surface-2);color:var(--color-text-1)}
+.dd-label{padding:5px 10px 3px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-text-4)}
+.dd-sep{height:1px;background:var(--color-border);margin:3px 0}
+.close-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--color-border);background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--color-text-3);transition:background var(--t),color var(--t)}
+.close-btn:hover{background:var(--color-surface-2);color:var(--color-text-1)}
+.close-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+/* col-settings item */
+.col-settings-item{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--color-text-1)}
+.col-settings-item:hover{background:var(--color-surface-2)}
+.col-toggle{width:30px;height:17px;border-radius:999px;background:var(--color-accent);position:relative;transition:background .15s;flex-shrink:0}
+.col-toggle.off{background:var(--color-border-strong)}
+.col-toggle::after{content:'';position:absolute;top:2.5px;right:2.5px;width:12px;height:12px;border-radius:50%;background:#fff;transition:right .15s,left .15s}
+.col-toggle.off::after{left:2.5px;right:auto}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.22);z-index:300;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--color-surface-1);border-radius:14px;border:1px solid var(--color-border);box-shadow:var(--shadow-float);width:440px;max-width:90vw;display:grid;grid-template-rows:auto 1fr auto;animation:modal-in .18s cubic-bezier(.34,1.3,.64,1)}
+@keyframes modal-in{from{opacity:0;transform:scale(.95) translateY(8px)}}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--color-table-border);display:flex;align-items:center;justify-content:space-between}
+.modal-head strong{font-size:14px;font-weight:700}
+.modal-body{padding:20px;overflow-y:auto;max-height:60vh}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--color-table-border);display:flex;justify-content:flex-end;gap:8px}
+.modal-body p{font-size:14px;color:var(--color-text-2);line-height:1.55}
+.hl{font-weight:600;color:var(--color-text-1)}
+.danger-icon{width:40px;height:40px;border-radius:12px;background:var(--color-danger-bg);border:1px solid var(--color-danger-border);display:grid;place-items:center;margin-bottom:12px}
+.danger-icon svg{width:20px;height:20px;fill:none;stroke:var(--color-danger);stroke-width:1.8;stroke-linecap:round}
+/* Drawer */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:200;display:none}
+.drawer-overlay.open{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:50%;max-width:640px;background:var(--color-surface-1);z-index:201;transform:translateX(100%);transition:transform .22s cubic-bezier(.25,.46,.45,.94);display:grid;grid-template-rows:auto 1fr auto;box-shadow:-8px 0 40px rgba(0,0,0,.13)}
+.drawer.open{transform:translateX(0)}
+.drawer-head{padding:16px 20px;border-bottom:1px solid var(--color-table-border);display:flex;align-items:center;justify-content:space-between}
+.drawer-head strong{font-size:16px;font-weight:700}
+.drawer-body{overflow-y:auto;padding:20px}
+.drawer-foot{padding:14px 20px;border-top:1px solid var(--color-table-border);display:flex;justify-content:flex-end;gap:8px}
+.form-group{margin-bottom:15px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--color-text-2);margin-bottom:5px}
+.req{color:var(--color-danger);margin-left:2px}
+.form-input{width:100%;height:32px;border:1px solid var(--color-border);border-radius:var(--r-md);background:var(--color-surface-2);color:var(--color-text-1);font-size:14px;padding:0 10px;transition:border-color var(--t),box-shadow var(--t);outline:none}
+.form-input:focus{border-color:var(--color-accent);box-shadow:0 0 0 2px var(--color-accent-bg)}
+.form-select{width:100%;height:32px;border:1px solid var(--color-border);border-radius:var(--r-md);background:var(--color-surface-2);color:var(--color-text-1);font-size:14px;padding:0 10px;appearance:none;cursor:pointer;outline:none}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* Toast */
+.toast-area{position:fixed;bottom:24px;right:24px;z-index:500;display:grid;gap:8px;pointer-events:none}
+.toast{display:flex;align-items:center;gap:9px;padding:9px 14px;border-radius:10px;background:var(--color-text-1);color:#fff;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.18);transform:translateY(14px);opacity:0;animation:toast-in .22s cubic-bezier(.34,1.3,.64,1) forwards;pointer-events:all}
+.toast.success-toast{background:var(--color-success-bg);border:1px solid var(--color-success-border);color:var(--color-success)}
+@keyframes toast-in{to{transform:translateY(0);opacity:1}}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:999px}
+/* App switcher */
+.app-switcher-wrap{position:relative;margin-left:auto}
+.app-switcher{width:26px;height:26px;border-radius:var(--r-1);background:transparent;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.app-switcher:hover{background:rgba(0,0,0,.10)}
+.app-switcher img{width:14px;height:14px;opacity:.7}
+[data-theme="dark"] .app-switcher:hover{background:rgba(255,255,255,.10)}
+[data-theme="dark"] .app-switcher img{filter:invert(1);opacity:.7}
+[data-theme="dark"] .ghead{background-image:url('mq8s9unp-logo-BG.png')}
+[data-theme="dark"] .logo-svg{filter:brightness(0) invert(1)}
+[data-theme="dark"] .btn{background:rgba(255,255,255,.09);border-color:var(--color-border)}
+[data-theme="dark"] .btn:hover{background:rgba(255,255,255,.14)}
+
+[data-theme="dark"] .breadcrumb .sep{color:rgba(255,255,255,.2)}
+
+@keyframes spin360{to{transform:rotate(360deg)}}
+.btn-spin svg{animation:spin360 .7s linear infinite}
+
+.theme-menu-wrap .dd-item.has-sub{display:flex;align-items:center;gap:8px;position:relative}
+.theme-menu-wrap .dd-item.has-sub>.sub-menu{display:none;position:absolute;left:calc(100% + 4px);bottom:0;min-width:140px;z-index:9999}
+.theme-menu-wrap .dd-item.has-sub:hover>.sub-menu{display:block}
+.theme-menu-wrap .sub-menu .dd-item{display:flex;align-items:center;gap:8px}
+
+/* ─── Context Menu ─── */
+.ctx-menu{position:fixed;z-index:9999;background:var(--color-surface-1);border:1px solid var(--color-border);border-radius:var(--r-lg,8px);box-shadow:var(--shadow-lg);padding:4px 0;min-width:192px;display:none;user-select:none;font-size:13px}
+.ctx-item{display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;color:var(--color-text-1);cursor:pointer;transition:background .12s;white-space:nowrap;line-height:1}
+.ctx-item:hover{background:var(--color-sidebar-item-hover)}
+.ctx-item.danger{color:var(--color-danger,#f04438)}
+.ctx-item.danger:hover{background:rgba(240,68,56,.08)}
+.ctx-item svg{width:13px;height:13px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;opacity:.55}
+.ctx-item .ctx-arrow{margin-left:auto;opacity:.45;font-size:12px;font-weight:400}
+.ctx-sep{height:1px;background:var(--color-table-border);margin:3px 0}
+
+/* ===== Tag Search Component ===== */
+.tag-srch{position:relative;display:inline-flex;align-items:center;gap:4px;min-width:150px;height:32px;border-radius:var(--r-1);border:1px solid var(--color-border);background:var(--color-surface-2);padding:0 8px 0 28px;cursor:pointer;font-size:13px;transition:border-color var(--t),box-shadow var(--t)}
+.tag-srch:hover,.tag-srch.open{border-color:var(--color-accent);box-shadow:0 0 0 2px var(--color-accent-bg)}
+.tag-srch .ts-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:12px;height:12px;display:grid;place-items:center;color:var(--color-text-4);pointer-events:none}
+.tag-srch .ts-icon svg{width:11px;height:11px}
+.ts-chips{display:flex;flex-wrap:nowrap;gap:3px;overflow:hidden;flex:1;align-items:center;min-width:0}
+.ts-chip{display:inline-flex;align-items:center;gap:3px;background:var(--color-accent-bg);color:var(--color-accent);border:1px solid var(--color-accent-border);border-radius:4px;padding:1px 5px;font-size:11px;white-space:nowrap;flex-shrink:0}
+.ts-chip-del{display:inline-grid;place-items:center;width:12px;height:12px;border-radius:2px;cursor:pointer;opacity:.7;font-size:10px}
+.ts-chip-del:hover{opacity:1}
+.ts-placeholder{color:var(--color-text-4);font-size:13px;white-space:nowrap}
+.ts-count-badge{background:var(--color-accent);color:#fff;border-radius:100px;padding:0 5px;font-size:10px;font-weight:600;flex-shrink:0}
+.ts-arrow{flex-shrink:0;width:9px;height:9px;margin-left:2px}
+.ts-arrow svg{width:9px;height:9px;fill:none;stroke:var(--color-text-4);stroke-width:2;stroke-linecap:round;transition:transform var(--t)}
+.tag-srch.open .ts-arrow svg{transform:rotate(180deg)}
+.tag-srch-panel{position:absolute;top:calc(100% + 5px);left:0;width:280px;background:var(--color-surface-1);border:1px solid var(--color-border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.1);z-index:300;display:none;flex-direction:column;overflow:hidden}
+.tag-srch-panel.open{display:flex}
+.tsp-head{padding:10px 10px 8px;border-bottom:1px solid var(--color-border)}
+.tsp-search-wrap{position:relative;display:flex;align-items:center}
+.tsp-srch-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--color-text-4);pointer-events:none;display:grid;place-items:center}
+.tsp-srch-icon svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.tsp-search-input{width:100%;height:30px;border-radius:6px;border:1px solid var(--color-border);background:var(--color-surface-2);color:var(--color-text-1);font-size:13px;padding:0 28px;outline:none;transition:border-color var(--t)}
+.tsp-search-input:focus{border-color:var(--color-accent)}
+.tsp-search-input::placeholder{color:var(--color-text-4)}
+.tsp-srch-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:16px;height:16px;border-radius:50%;background:var(--color-surface-2);border:1px solid var(--color-border);display:none;place-items:center;cursor:pointer;color:var(--color-text-3);font-size:10px;line-height:1}
+.tsp-srch-clear.show{display:grid}
+.tsp-section-head{padding:6px 12px 2px;font-size:11px;color:var(--color-text-4);font-weight:500;letter-spacing:.08em;text-transform:uppercase}
+.tsp-body{max-height:200px;overflow-y:auto;padding:4px}
+.tsp-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:7px;cursor:pointer;user-select:none;transition:background var(--t)}
+.tsp-item:hover{background:var(--color-surface-2)}
+.tsp-item.selected{background:var(--color-accent-bg)}
+.tsp-cb{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--color-border);background:var(--color-surface-1);flex-shrink:0;display:grid;place-items:center;transition:background var(--t),border-color var(--t)}
+.tsp-item.selected .tsp-cb{background:var(--color-accent);border-color:var(--color-accent)}
+.tsp-cb::after{content:"";display:none;width:5px;height:8px;border:1.5px solid #fff;border-top:0;border-left:0;transform:rotate(45deg) translate(-1px,-1px)}
+.tsp-item.selected .tsp-cb::after{display:block}
+.tsp-tag-name{font-size:13px;color:var(--color-text-1);flex:1}
+.tsp-tag-count{font-size:11px;color:var(--color-text-4);font-family:var(--font-mono)}
+.tsp-empty{padding:20px;text-align:center;font-size:12px;color:var(--color-text-4)}
+.tsp-foot{padding:8px 10px;border-top:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0}
+.tsp-sel-count{font-size:12px;color:var(--color-text-3)}
+.tsp-sel-count strong{color:var(--color-accent);font-weight:600}
+.mfp-group .tag-srch{width:100%;min-width:0}
+.mfp-group .tag-srch-panel{width:260px}
+
+</style>
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<div class="app" id="app">
+<aside class="gside" aria-label="全局导航">
+  <div class="ghead">
+  </div>
+  <nav class="gnav" aria-label="主导航">
+    <div class="gitem" onclick="toggleNav(this)" tabindex="0">
+      <div class="ic-w"><svg viewBox="0 0 14 14"><path d="M2 4h10M2 7h7M2 10h5"/><rect x="1.5" y="1.5" width="11" height="11" rx="1.5"/></svg></div>
+      <span>合规数据管理</span><svg class="chev" viewBox="0 0 12 12"><polyline points="4,3 8,6 4,9"/></svg>
+    </div>
+    <div class="gitem" onclick="toggleNav(this)" tabindex="0">
+      <div class="ic-w"><svg viewBox="0 0 14 14"><rect x="1.5" y="3" width="11" height="8" rx="1.5"/><line x1="1.5" y1="6" x2="12.5" y2="6"/></svg></div>
+      <span>切片数据管理</span><svg class="chev" viewBox="0 0 12 12"><polyline points="4,3 8,6 4,9"/></svg>
+    </div>
+    <div class="gitem expanded" onclick="toggleNav(this)" tabindex="0">
+      <div class="ic-w"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5"/><path d="M7 4v3l2 1.5"/></svg></div>
+      <span>场景管理</span><svg class="chev" viewBox="0 0 12 12"><polyline points="4,3 8,6 4,9"/></svg>
+    </div>
+    <div class="gsub show">
+      <div class="gsubitem active" tabindex="0">场景管理 <span class="bdot"></span></div>
+    </div>
+    <div class="gitem expanded" onclick="toggleNav(this)" tabindex="0">
+      <div class="ic-w"><svg viewBox="0 0 14 14"><path d="M2 10V5l5-3 5 3v5l-5 3z"/></svg></div>
+      <span>资产管理</span><svg class="chev" viewBox="0 0 12 12"><polyline points="4,3 8,6 4,9"/></svg>
+    </div>
+    <div class="gsub show">
+      <div class="gsubitem" tabindex="0" onclick="_nav('Dataverse_Scene Management_SceneAsset_Light.html')">静态场景资产</div>
+      <div class="gsubitem" onclick="_nav('Dataverse_Scene Management_ModelAsset_Light.html')">模型资产</div>
+      <div class="gsubitem" tabindex="0">地图资产</div>
+    </div>
+    <div class="gitem expanded" onclick="toggleNav(this)" tabindex="0">
+      <div class="ic-w"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="2"/><path d="M7 1.5v1M7 11.5v1M1.5 7h1M11.5 7h1"/></svg></div>
+      <span>配置管理</span><svg class="chev" viewBox="0 0 12 12"><polyline points="4,3 8,6 4,9"/></svg>
+    </div>
+    <div class="gsub show">
+      <div class="gsubitem" tabindex="0">算子组件</div>
+      <div class="gsubitem" tabindex="0">消息队列</div>
+      <div class="gsubitem" tabindex="0">工作流模板</div>
+      <div class="gsubitem" tabindex="0">训练参数模板</div>
+    </div>
+    <div class="gitem" onclick="toggleNav(this)" tabindex="0">
+      <div class="ic-w"><svg viewBox="0 0 14 14"><rect x="1.5" y="2.5" width="11" height="9" rx="1.5"/><line x1="1.5" y1="5.5" x2="12.5" y2="5.5"/></svg></div>
+      <span>任务管理</span><svg class="chev" viewBox="0 0 12 12"><polyline points="4,3 8,6 4,9"/></svg>
+    </div>
+  </nav>
+  <div class="gfoot">
+    <div class="user-row">
+      <div class="avatar">T</div>
+      <div><strong>测试账号</strong><span>Admin</span></div>
+    </div>
+    <div class="gfoot-icons">
+      <button class="icon-btn" title="帮助"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5"/><line x1="7" y1="9.5" x2="7" y2="7"/><circle cx="7" cy="5" r=".6" fill="currentColor" stroke="none"/></svg></button>    </div>
+      <div class="dropdown" style="position:relative" onmouseenter="openThemeMenu()" onmouseleave="scheduleCloseThemeMenu()">
+        <button class="icon-btn" title="更多"><svg viewBox="0 0 14 14"><circle cx="3" cy="7" r="1"/><circle cx="7" cy="7" r="1"/><circle cx="11" cy="7" r="1"/></svg></button>
+        <div id="settingsMenu" class="dd-menu" style="bottom:36px;left:50%;transform:translateX(-50%);min-width:140px" onmouseenter="cancelCloseThemeMenu()" onmouseleave="scheduleCloseThemeMenu()">
+          <div class="dd-item has-submenu" style="display:flex;align-items:center;gap:8px;position:relative" onmouseenter="openAppearSubMenu()" onmouseleave="scheduleCloseAppearSubMenu()">
+            <svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="2.5"/><line x1="7" y1="1" x2="7" y2="2.5"/><line x1="7" y1="11.5" x2="7" y2="13"/><line x1="1" y1="7" x2="2.5" y2="7"/><line x1="11.5" y1="7" x2="13" y2="7"/><line x1="2.93" y1="2.93" x2="4.06" y2="4.06"/><line x1="9.94" y1="9.94" x2="11.07" y2="11.07"/><line x1="11.07" y1="2.93" x2="9.94" y2="4.06"/><line x1="4.06" y1="9.94" x2="2.93" y2="11.07"/></svg>
+            外观
+            <svg style="margin-left:auto" viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="3,2 7,5 3,8"/></svg>
+            <div id="appearSubMenu" class="dd-menu" style="display:none;position:absolute;left:100%;bottom:0;margin-left:4px;min-width:140px" onmouseenter="cancelCloseAppearSubMenu()" onmouseleave="scheduleCloseAppearSubMenu()">
+              <div class="dd-item" onclick="setTheme('light')" style="display:flex;align-items:center;gap:8px">
+                <svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="3"/><path d="M7 1.5v1M7 11.5v1M1.5 7h1M11.5 7h1"/></svg>
+                浅色模式
+                <svg id="checkLight" viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" style="margin-left:auto"><polyline points="2,6 5,9 10,3"/></svg>
+              </div>
+              <div class="dd-item" onclick="setTheme('dark')" style="display:flex;align-items:center;gap:8px">
+                <svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M11.5 9A5.5 5.5 0 0 1 5 2.5a5.5 5.5 0 1 0 6.5 6.5z"/></svg>
+                深色模式
+                <svg id="checkDark" viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" style="margin-left:auto;display:none"><polyline points="2,6 5,9 10,3"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</aside>
+<section class="main">
+  <div class="breadcrumb">
+    <a href="#">/</a><span class="sep">&rsaquo;</span>
+    <span class="cur">场景管理</span>
+    <div class="bc-end">
+      <span style="font-size:12px;color:var(--color-text-4)">共 <strong style="color:var(--color-text-1)">1,570</strong> 条场景</span>
+      <button class="icon-btn" id="refreshBtn" title="刷新" onclick="doRefresh(this)"><svg viewBox="0 0 14 14"><path d="M12 7A5 5 0 1 1 7 2M7 2l3 0V5"/></svg></button>
+    </div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-card accent"><div class="stat-label">总场景数</div><div class="stat-value">1,570</div></div>
+    <div class="stat-card"><div class="stat-label">LogSim</div><div class="stat-value">1,203</div></div>
+    <div class="stat-card"><div class="stat-label">Log-Replay</div><div class="stat-value">67</div></div>
+    <div class="stat-card"><div class="stat-label">WorldSim</div><div class="stat-value">45</div></div>
+  </div>
+  <div class="toolbar">
+    <button class="btn primary" onclick="openCreateDrawer()"><svg viewBox="0 0 12 12"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg>创建场景</button>
+    <button class="btn" id="btnChangeStatus" disabled>更改状态</button>
+    <button class="btn danger" id="btnDelete" disabled onclick="openDeleteModal()">删除</button>
+    <div class="toolbar-end">
+      <button class="icon-btn" title="刷新" onclick="doRefresh(this)"><svg viewBox="0 0 14 14"><path d="M12 7A5 5 0 1 1 7 2M7 2l3 0V5"/></svg></button>
+      <div style="position:relative">
+        <button class="icon-btn" title="列设置" onclick="toggleDD('colSettingsDD',event)"><svg viewBox="0 0 14 14"><line x1="2" y1="4" x2="12" y2="4"/><line x1="2" y1="7" x2="12" y2="7"/><line x1="2" y1="10" x2="12" y2="10"/></svg></button>
+        <div id="colSettingsDD" class="dd-menu" style="right:0;top:calc(100% + 4px);width:178px;padding:0">
+          <div style="padding:10px 12px 8px;border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:600">列设置</span>
+            <button class="close-btn" style="width:22px;height:22px" onclick="toggleDD('colSettingsDD',event)"><svg viewBox="0 0 12 12"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button>
+          </div>
+          <div style="padding:4px;max-height:300px;overflow-y:auto" id="cspList"></div>
+          <div style="padding:6px;border-top:1px solid var(--color-border);display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <button class="btn sm" onclick="resetColSettings()">重置</button>
+            <button class="btn primary sm" onclick="toggleDD('colSettingsDD',event)">确认</button>
+          </div>
+        </div>
+      </div>
+      <button class="icon-btn active" title="列表视图"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="4" x2="13" y2="4"/><line x1="3" y1="8" x2="13" y2="8"/><line x1="3" y1="12" x2="13" y2="12"/></svg></button>
+      <button class="icon-btn" title="缩略图视图" onclick="_nav('Dataverse_Scene Management_Thumbnail_Light.html')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg></button>
+    </div>
+  </div>
+  <div class="filterbar">
+    <div class="tag-srch" id="tagSrch" onclick="openTagSrch(event)"><div class="ts-icon"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="3.5"/><line x1="7.5" y1="7.5" x2="11" y2="11"/></svg></div><div class="ts-chips" id="tsChips"><span class="ts-placeholder">标签检索</span></div><div class="ts-arrow"><svg viewBox="0 0 10 10"><polyline points="2,4 5,7 8,4"/></svg></div><div class="tag-srch-panel" id="tagSrchPanel"><div class="tsp-head"><div class="tsp-search-wrap"><div class="tsp-srch-icon"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="3.5"/><line x1="7.5" y1="7.5" x2="11" y2="11"/></svg></div><input type="text" class="tsp-search-input" id="tspInput" placeholder="搜索标签" oninput="filterTagSrch(this.value)" onclick="event.stopPropagation()"/><div class="tsp-srch-clear" id="tspClearBtn" onclick="clearTagSrchInput();event.stopPropagation()">✕</div></div></div><div class="tsp-section-head" id="tspSectionHead">热门标签</div><div class="tsp-body" id="tspBody"></div><div class="tsp-empty" id="tspEmpty" style="display:none">无匹配标签</div><div class="tsp-foot"><span class="tsp-sel-count" id="tspSelCount">已选 <strong>0</strong> 个</span><div style="display:flex;gap:6px"><button class="btn flat" style="height:26px;font-size:12px;padding:0 10px" onclick="resetTagSrch();event.stopPropagation()">重置</button><button class="btn primary" style="height:26px;font-size:12px;padding:0 10px" onclick="applyTagSrch();event.stopPropagation()">确定</button></div></div></div></div>
+    <div class="search-inline" style="min-width:200px"><div class="si-ico"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="3.5"/><line x1="7.5" y1="7.5" x2="11" y2="11"/></svg></div><input type="text" placeholder="请输入场景信息搜索"/></div>
+    <div class="fsel" onclick="toggleFilterDD(this)">可用性 / 全部<svg viewBox="0 0 10 10"><polyline points="2,3.5 5,6.5 8,3.5"/></svg><div class="filter-dd"><div class="filter-opt checked" onclick="pickFilter(this)">全部</div><div class="filter-opt" onclick="pickFilter(this)">可用</div><div class="filter-opt" onclick="pickFilter(this)">已停用</div><div class="filter-opt" onclick="pickFilter(this)">有问题</div></div></div>
+    <div class="fsel" onclick="toggleFilterDD(this)">数据类型 / 全部<svg viewBox="0 0 10 10"><polyline points="2,3.5 5,6.5 8,3.5"/></svg><div class="filter-dd"><div class="filter-opt checked" onclick="pickFilter(this)">全部</div><div class="filter-opt" onclick="pickFilter(this)">LogSim</div><div class="filter-opt" onclick="pickFilter(this)">WorldSim</div><div class="filter-opt" onclick="pickFilter(this)">Log-Replay</div></div></div>
+    <div class="fsel" onclick="toggleFilterDD(this)">来源方式 / 全部<svg viewBox="0 0 10 10"><polyline points="2,3.5 5,6.5 8,3.5"/></svg><div class="filter-dd"><div class="filter-opt checked" onclick="pickFilter(this)">全部</div><div class="filter-opt" onclick="pickFilter(this)">实采重建</div><div class="filter-opt" onclick="pickFilter(this)">副本创建</div><div class="filter-opt" onclick="pickFilter(this)">泛化衍生</div><div class="filter-opt" onclick="pickFilter(this)">手动创建</div><div class="filter-opt" onclick="pickFilter(this)">实采封装</div></div></div>
+    <div class="fsel" onclick="toggleFilterDD(this)">采集平台 / 全部<svg viewBox="0 0 10 10"><polyline points="2,3.5 5,6.5 8,3.5"/></svg><div class="filter-dd"><div class="filter-opt checked" onclick="pickFilter(this)">全部</div><div class="filter-opt" onclick="pickFilter(this)">江淮X8</div><div class="filter-opt" onclick="pickFilter(this)">江淮X6</div><div class="filter-opt" onclick="pickFilter(this)">测试平台A</div></div></div>
+    <div class="fsep"></div>
+    <button class="btn primary" onclick="doQuery()">查询</button>
+    <button class="btn" onclick="doReset()">重置</button>
+    <button class="btn" onclick="toggleMoreFilter()">更多筛选 ›</button>
+  </div>
+  <div class="more-filter-panel" id="mfPanel">
+    <div class="mfp-group"><div class="mfp-label">PSNR指标</div><div style="display:flex;gap:6px;align-items:center"><input class="mfp-input" type="number" placeholder="最小" style="width:80px"/><span style="font-size:12px;color:var(--color-text-4)">—</span><input class="mfp-input" type="number" placeholder="最大" style="width:80px"/></div></div>
+    <div class="mfp-group"><div class="mfp-label">创建时间</div><div style="display:flex;gap:6px;align-items:center"><input class="mfp-input" type="text" placeholder="开始日期" style="width:110px"/><span style="font-size:12px;color:var(--color-text-4)">—</span><input class="mfp-input" type="text" placeholder="结束日期" style="width:110px"/></div></div>
+    <div style="display:flex;gap:8px;align-items:flex-end"><button class="btn primary" onclick="doQuery()">查询</button><button class="btn" onclick="doReset()">重置</button></div>
+  </div>
+  <div class="sel-bar" id="selBar"><span id="selCount">已选 0 条</span><a href="#" onclick="clearAll()" style="color:var(--color-accent);font-size:12px">清除选择</a></div>
+  <div class="table-scroller">
+    <table id="sceneTable">
+      <thead><tr>
+        <th class="cb-cell"><div class="cb-wrap" id="masterCb" onclick="toggleMaster(this)"></div></th>
+        <th style="width:90px">场景ID</th><th style="width:180px">场景名称</th><th style="width:72px">示意图</th>
+        <th style="width:72px">可用性</th><th style="width:80px">类型</th><th style="width:90px">来源方式</th>
+        <th style="width:80px">标签</th><th style="width:100px">地图</th><th style="width:130px">静态场景资产</th>
+        <th style="width:64px">PSNR</th><th style="width:64px">SSIM</th><th style="width:80px">采集平台</th>
+        <th style="width:130px">创建时间</th><th style="width:90px">操作</th>
+      </tr></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div class="pagination">
+    <div class="pag-l">共 <strong>1,570</strong> 项</div>
+    <div class="pag-c" id="pagC"></div>
+    <div class="pag-r">
+      <div class="goto"><span>跳转至</span><input type="text" id="gotoInput"/><span>页</span></div>
+      <button class="btn" onclick="showToast('加入集合功能开发中')">加入集合</button>
+      <button class="btn primary" onclick="openRunModal()">运行</button>
+    </div>
+  </div>
+</section>
+</div>
+<!-- Create Drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="createDrawer">
+  <div class="drawer-head"><strong>创建场景</strong><button class="close-btn" onclick="closeDrawer()"><svg viewBox="0 0 12 12"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div>
+  <div class="drawer-body">
+    <div class="form-group"><label class="form-label">场景名称<span class="req">*</span></label><input class="form-input" type="text" placeholder="请输入场景名称"/></div>
+    <div class="form-group"><div class="form-row"><div><label class="form-label">数据类型<span class="req">*</span></label><select class="form-select"><option>LogSim</option><option>WorldSim</option><option>Log-Replay</option></select></div><div><label class="form-label">来源方式</label><select class="form-select"><option>实采重建</option><option>副本创建</option><option>泛化衍生</option></select></div></div></div>
+    <div class="form-group"><label class="form-label">地图</label><input class="form-input" type="text" placeholder="选择地图"/></div>
+    <div class="form-group"><label class="form-label">静态场景资产</label><input class="form-input" type="text" placeholder="选择静态场景资产"/></div>
+    <div class="form-group"><label class="form-label">采集平台</label><input class="form-input" type="text" placeholder="请输入采集平台"/></div>
+    <div class="form-group"><label class="form-label">标签</label><input class="form-input" type="text" placeholder="输入标签，回车确认"/></div>
+  </div>
+  <div class="drawer-foot"><button class="btn" onclick="closeDrawer()">取消</button><button class="btn primary" onclick="saveCreate()">保存</button></div>
+</div>
+<!-- Delete Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-head"><strong>删除场景</strong><button class="close-btn" onclick="closeModal('deleteModal')"><svg viewBox="0 0 12 12"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div>
+    <div class="modal-body"><div class="danger-icon"><svg viewBox="0 0 20 20"><line x1="10" y1="6" x2="10" y2="10"/><circle cx="10" cy="14" r=".8" fill="currentColor" stroke="none"/><path d="M10 2L18 16H2z"/></svg></div><p>确认删除选中的 <span class="hl" id="deleteCount">0</span> 条场景记录？此操作无法撤销。</p></div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal('deleteModal')">取消</button><button class="btn danger" onclick="doDelete()">确认删除</button></div>
+  </div>
+</div>
+<!-- Run Modal -->
+<div class="modal-overlay" id="runModal">
+  <div class="modal">
+    <div class="modal-head"><strong>运行场景</strong><button class="close-btn" onclick="closeModal('runModal')"><svg viewBox="0 0 12 12"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">运行模式<span class="req">*</span></label><select class="form-select"><option>LogSim</option><option>WorldSim</option><option>Log-Replay</option></select></div>
+      <div class="form-group"><label class="form-label">任务名称<span class="req">*</span></label><input class="form-input" type="text" placeholder="请输入任务名称"/></div>
+      <div class="form-group"><label class="form-label">优先级</label><select class="form-select"><option>P0 紧急</option><option>P1 高</option><option selected>P2 中</option><option>P3 低</option></select></div>
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal('runModal')">取消</button><button class="btn primary" onclick="doRun()">提交运行</button></div>
+  </div>
+</div>
+<div class="toast-area" id="toastArea"></div>
+<script>
+
+function _nav(url) {
+  try {
+    var theme = document.documentElement.getAttribute('data-theme') || 'light';
+    if (url.indexOf('Resource Management') > -1 || url.indexOf('Dataverse') > -1) {
+      if (theme === 'dark') url = url.replace('_Light.html','_Dark.html').replace('Light.html','Dark.html');
+      else url = url.replace('_Dark.html','_Light.html').replace('Dark.html','Light.html');
+    }
+    var sep = url.indexOf('?') > -1 ? '&' : '?';
+    window.location.href = url + sep + 'theme=' + theme;
+  } catch(e) { window.location.href = url; }
+}
+
+var SCENES = [
+  {id:'GD_00001',name:'\u573a\u666f\u540d\u79f0_\u91c7\u96c6\u5f00\u59cb\u65f6\u95f4_001',avail:'avail-on',availLabel:'\u53ef\u7528',type:'tp-log',typeLabel:'LogSim',src:'\u5b9e\u91c7\u91cd\u5efa',tags:['Tag','\u73af\u5883'],map:'XXXXXXX',asset:'[4DGS] XXXXXXX',psnr:'32dB',ssim:'0.914',platform:'\u6c5f\u6dee X8',date:'2023-11-29 17:00:00'},
+  {id:'GD_00002',name:'\u573a\u666f\u540d\u79f0_\u91c7\u96c6\u5f00\u59cb\u65f6\u95f4_002',avail:'avail-off',availLabel:'\u5df2\u505c\u7528',type:'tp-world',typeLabel:'WorldSim',src:'\u526f\u672c\u521b\u5efa',tags:['Tag'],map:'XXXXXXX',asset:'[3DGS] XXXXXXX',psnr:'31.5dB',ssim:'0.905',platform:'\u6c5f\u6dee X6',date:'2023-11-29 17:00:00'},
+  {id:'GD_00003',name:'\u573a\u666f\u540d\u79f0_\u91c7\u96c6\u5f00\u59cb\u65f6\u95f4_003',avail:'avail-warn',availLabel:'\u6709\u95ee\u9898',type:'tp-replay',typeLabel:'Log-Replay',src:'\u6cdb\u5316\u884d\u751f',tags:['Tag','\u5371\u9669'],map:'XXXXXXX',asset:'[UE] XXXXXXX',psnr:'30.5dB',ssim:'0.892',platform:'\u6d4b\u8bd5\u5e73\u53f0 A',date:'2023-11-29 17:00:00'},
+  {id:'GD_00004',name:'\u573a\u666f\u540d\u79f0_\u91c7\u96c6\u5f00\u59cb\u65f6\u95f4_004',avail:'avail-on',availLabel:'\u53ef\u7528',type:'tp-log',typeLabel:'LogSim',src:'\u624b\u52a8\u521b\u5efa',tags:['Tag'],map:'XXXXXXX',asset:'[4DGS] XXXXXXX',psnr:'33dB',ssim:'0.921',platform:'\u6c5f\u6dee X8',date:'2023-11-29 17:00:00'},
+  {id:'GD_00005',name:'\u573a\u666f\u540d\u79f0_\u91c7\u96c6\u5f00\u59cb\u65f6\u95f4_005',avail:'avail-on',availLabel:'\u53ef\u7528',type:'tp-world',typeLabel:'WorldSim',src:'\u5b9e\u91c7\u5c01\u88c5',tags:['Tag','\u6d4b\u8bd5'],map:'XXXXXXX',asset:'[3DGS] XXXXXXX',psnr:'29.8dB',ssim:'0.878',platform:'\u6c5f\u6dee X6',date:'2023-11-29 17:00:00'},
+  {id:'GD_00006',name:'\u573a\u666f\u540d\u79f0_\u91c7\u96c6\u5f00\u59cb\u65f6\u95f4_006',avail:'avail-off',availLabel:'\u5df2\u505c\u7528',type:'tp-log',typeLabel:'LogSim',src:'\u5b9e\u91c7\u91cd\u5efa',tags:['Tag'],map:'XXXXXXX',asset:'[UE] XXXXXXX',psnr:'32.1dB',ssim:'0.910',platform:'\u6d4b\u8bd5\u5e73\u53f0 A',date:'2023-11-29 17:00:00'},
+  {id:'GD_00007',name:'\u573a\u666f\u540d\u79f0_\u91c7\u96c6\u5f00\u59cb\u65f6\u95f4_007',avail:'avail-on',availLabel:'\u53ef\u7528',type:'tp-replay',typeLabel:'Log-Replay',src:'\u526f\u672c\u521b\u5efa',tags:['Tag','\u591c\u95f4'],map:'XXXXXXX',asset:'[4DGS] XXXXXXX',psnr:'31.0dB',ssim:'0.899',platform:'\u6c5f\u6dee X8',date:'2023-11-29 17:00:00'},
+  {id:'GD_00008',name:'\u573a\u666f\u540d\u79f0_\u91c7\u96c6\u5f00\u59cb\u65f6\u95f4_008',avail:'avail-warn',availLabel:'\u6709\u95ee\u9898',type:'tp-world',typeLabel:'WorldSim',src:'\u6cdb\u5316\u884d\u751f',tags:['Tag'],map:'XXXXXXX',asset:'[3DGS] XXXXXXX',psnr:'28.5dB',ssim:'0.861',platform:'\u6c5f\u6dee X6',date:'2023-11-29 17:00:00'},
+  {id:'GD_00009',name:'\u573a\u666f\u540d\u79f0_\u91c7\u96c6\u5f00\u59cb\u65f6\u95f4_009',avail:'avail-on',availLabel:'\u53ef\u7528',type:'tp-log',typeLabel:'LogSim',src:'\u624b\u52a8\u521b\u5efa',tags:['Tag','\u96e8\u5929'],map:'XXXXXXX',asset:'[UE] XXXXXXX',psnr:'32.8dB',ssim:'0.918',platform:'\u6d4b\u8bd5\u5e73\u53f0 A',date:'2023-11-29 17:00:00'},
+  {id:'GD_00010',name:'\u573a\u666f\u540d\u79f0_\u91c7\u96c6\u5f00\u59cb\u65f6\u95f4_010',avail:'avail-on',availLabel:'\u53ef\u7528',type:'tp-replay',typeLabel:'Log-Replay',src:'\u5b9e\u91c7\u5c01\u88c5',tags:['Tag'],map:'XXXXXXX',asset:'[4DGS] XXXXXXX',psnr:'30.2dB',ssim:'0.886',platform:'\u6c5f\u6dee X8',date:'2023-11-29 17:00:00'}
+];
+
+var selectedRows = new Set();
+
+function buildThumb() {
+  return '<svg width="60" height="36" viewBox="0 0 60 36"><rect width="60" height="36" fill="#0a0e18"/><line x1="30" y1="0" x2="30" y2="36" stroke="#1a2a4a" stroke-width="0.5"/><line x1="0" y1="18" x2="60" y2="18" stroke="#1a2a4a" stroke-width="0.5"/><path d="M10 18 Q20 10 30 18 Q40 26 50 18" stroke="#2997FF" stroke-width="1.2" fill="none"/></svg>';
+}
+
+function buildTable() {
+  var tbody = document.getElementById('tableBody');
+  if (!tbody) return;
+  var html = '';
+  SCENES.forEach(function(s, i) {
+    var tags = s.tags.map(function(t){ return '<span class="tag">'+t+'</span>'; }).join(' ');
+    html += '<tr id="row'+i+'" onclick="handleRowClick(event,'+i+')">'+
+      '<td class="cb-cell"><div class="cb-wrap" id="cb'+i+'" onclick="toggleRow(event,'+i+')"></div></td>'+
+      '<td class="id-cell">'+s.id+'</td>'+
+      '<td class="name-cell" title="'+s.name+'">'+s.name+'</td>'+
+      '<td style="padding:8px 12px">'+buildThumb()+'</td>'+
+      '<td><span class="avail-pill '+s.avail+'">'+s.availLabel+'</span></td>'+
+      '<td><span class="type-pill '+s.type+'">'+s.typeLabel+'</span></td>'+
+      '<td style="font-size:12px;color:var(--color-text-3)">'+s.src+'</td>'+
+      '<td>'+tags+'</td>'+
+      '<td class="mono-val" style="font-size:11px">'+s.map+'</td>'+
+      '<td class="mono-val" style="font-size:11px">'+s.asset+'</td>'+
+      '<td class="mono-val">'+s.psnr+'</td>'+
+      '<td class="mono-val">'+s.ssim+'</td>'+
+      '<td style="font-size:12px">'+s.platform+'</td>'+
+      '<td class="mono-val" style="font-size:11px">'+s.date+'</td>'+
+      '<td><span class="op-link" onclick="event.stopPropagation();showToast(\'\u67e5\u770b\u573a\u666f\u8be6\u60c5\')">'+
+      '\u67e5\u770b</span><span class="op-sep">|</span>'+
+      '<span class="op-link" onclick="event.stopPropagation();showToast(\'\u66f4\u591a\u64cd\u4f5c\')">\u66f4\u591a</span></td>'+
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+  renderPag();
+  initCSP();
+  syncThemeCheck();
+}
+
+function handleRowClick(e, i) {
+  if (e.target.closest('.cb-wrap') || e.target.closest('.op-link')) return;
+  toggleRow(e, i);
+}
+
+function toggleRow(e, i) {
+  e.stopPropagation();
+  var row = document.getElementById('row'+i), cb = document.getElementById('cb'+i);
+  if (selectedRows.has(i)) { selectedRows.delete(i); row.classList.remove('selected'); cb.classList.remove('checked'); }
+  else { selectedRows.add(i); row.classList.add('selected'); cb.classList.add('checked'); }
+  updateSelBar();
+}
+
+function toggleMaster(el) {
+  if (selectedRows.size === SCENES.length) {
+    selectedRows.clear();
+    SCENES.forEach(function(_,i){ var r=document.getElementById('row'+i),c=document.getElementById('cb'+i); if(r){r.classList.remove('selected');c.classList.remove('checked')}; });
+    el.classList.remove('checked');
+  } else {
+    SCENES.forEach(function(_,i){ selectedRows.add(i); var r=document.getElementById('row'+i),c=document.getElementById('cb'+i); if(r){r.classList.add('selected');c.classList.add('checked')}; });
+    el.classList.add('checked');
+  }
+  updateSelBar();
+}
+
+function updateSelBar() {
+  var n = selectedRows.size;
+  var bar = document.getElementById('selBar');
+  document.getElementById('selCount').textContent = '\u5df2\u9009 '+n+' \u6761';
+  document.getElementById('deleteCount').textContent = n;
+  if (n > 0) { bar.classList.add('show'); document.getElementById('btnChangeStatus').disabled=false; document.getElementById('btnDelete').disabled=false; }
+  else { bar.classList.remove('show'); document.getElementById('btnChangeStatus').disabled=true; document.getElementById('btnDelete').disabled=true; }
+}
+
+function clearAll() {
+  selectedRows.clear();
+  SCENES.forEach(function(_,i){ var r=document.getElementById('row'+i),c=document.getElementById('cb'+i); if(r){r.classList.remove('selected');c.classList.remove('checked')} });
+  document.getElementById('masterCb').classList.remove('checked');
+  updateSelBar();
+}
+
+function renderPag() {
+  var cur=6, total=50;
+  var html = '<button class="pag-btn" onclick="showToast(\'\u4e0a\u4e00\u9875\')"><svg viewBox="0 0 12 12"><polyline points="7.5,2 3.5,6 7.5,10"/></svg></button>';
+  [1,'…',4,5,6,7,8,'…',total].forEach(function(p){
+    if(p==='…'){html+='<span class="pag-btn" style="cursor:default">\u2026</span>';}
+    else if(p===cur){html+='<button class="pag-btn active" aria-current="page">'+p+'</button>';}
+    else{html+='<button class="pag-btn" onclick="showToast(\'\u8df3\u8f6c\u81f3\u7b2c'+p+'\u9875\')">'+p+'</button>';}
+  });
+  html += '<button class="pag-btn" onclick="showToast(\'\u4e0b\u4e00\u9875\')"><svg viewBox="0 0 12 12"><polyline points="4.5,2 8.5,6 4.5,10"/></svg></button>';
+  document.getElementById('pagC').innerHTML = html;
+  document.getElementById('gotoInput').onkeydown = function(e){ if(e.key==='Enter') showToast('\u5df2\u8df3\u8f6c\u81f3\u7b2c'+(this.value||1)+'\u9875'); };
+}
+
+var CSP_COLS = ['\u573a\u666f ID','\u573a\u666f\u540d\u79f0','\u793a\u610f\u56fe','\u53ef\u7528\u6027','\u7c7b\u578b','\u6765\u6e90\u65b9\u5f0f','\u6807\u7b7e','\u5730\u56fe','\u9759\u6001\u573a\u666f\u8d44\u4ea7','PSNR','SSIM','\u91c7\u96c6\u5e73\u53f0','\u521b\u5efa\u65f6\u95f4'];
+var cspState = {};
+CSP_COLS.forEach(function(c){ cspState[c]=true; });
+
+function initCSP() {
+  var list = document.getElementById('cspList');
+  if(!list) return;
+  var html='';
+  CSP_COLS.forEach(function(c){
+    var on=cspState[c];
+    html+='<div class="col-settings-item" onclick="toggleCSP(this,\''+c+'\')">'+
+      '<span style="font-size:13px">'+c+'</span>'+
+      '<div class="col-toggle'+(on?'':' off')+'"></div></div>';
+  });
+  list.innerHTML=html;
+}
+
+function toggleCSP(el,col){
+  cspState[col]=!cspState[col];
+  var tog=el.querySelector('.col-toggle');
+  if(tog){ if(cspState[col]){tog.classList.remove('off');}else{tog.classList.add('off');} }
+}
+
+function resetColSettings(){ CSP_COLS.forEach(function(c){cspState[c]=true;}); initCSP(); showToast('\u5217\u8bbe\u7f6e\u5df2\u91cd\u7f6e'); }
+
+function toggleNav(el){ el.classList.toggle('expanded'); var sub=el.nextElementSibling; if(sub&&sub.classList.contains('gsub'))sub.classList.toggle('show'); }
+function toggleDD(id,e){ if(e)e.stopPropagation(); var el=document.getElementById(id); if(el)el.classList.toggle('open'); }
+var _amTimer=null;
+function openAppMenu(){var m=document.getElementById('appSwitchMenu');if(m)m.classList.add('open');}
+function scheduleCloseAppMenu(){_amTimer=setTimeout(function(){var m=document.getElementById('appSwitchMenu');if(m)m.classList.remove('open');},120);}
+function cancelCloseAppMenu(){if(_amTimer){clearTimeout(_amTimer);_amTimer=null;}}
+function toggleFilterDD(el){ var dd=el.querySelector('.filter-dd'); if(!dd)return; document.querySelectorAll('.filter-dd.open').forEach(function(d){if(d!==dd)d.classList.remove('open');}); dd.classList.toggle('open'); }
+function pickFilter(opt){ var dd=opt.closest('.filter-dd'); if(!dd)return; dd.querySelectorAll('.filter-opt').forEach(function(o){o.classList.remove('checked');}); opt.classList.add('checked'); dd.classList.remove('open'); showToast('\u7b5b\u9009\u5df2\u66f4\u65b0'); }
+function toggleMoreFilter(){ var p=document.getElementById('mfPanel'); if(p)p.classList.toggle('open'); }
+function doQuery(){ showToast('\u67e5\u8be2\u4e2d\u2026'); }
+function doReset(){ document.querySelectorAll('.filter-opt').forEach(function(o){o.classList.toggle('checked',o.textContent.trim()==='\u5168\u90e8');}); showToast('\u5df2\u91cd\u7f6e\u7b5b\u9009\u6761\u4ef6'); }
+function openCreateDrawer(){ document.getElementById('drawerOverlay').classList.add('open'); document.getElementById('createDrawer').classList.add('open'); }
+function closeDrawer(){ document.getElementById('drawerOverlay').classList.remove('open'); document.getElementById('createDrawer').classList.remove('open'); }
+function saveCreate(){ closeDrawer(); showToast('\u573a\u666f\u521b\u5efa\u6210\u529f'); }
+function openDeleteModal(){ if(selectedRows.size===0){showToast('\u8bf7\u5148\u9009\u62e9\u573a\u666f');return;} document.getElementById('deleteModal').classList.add('open'); }
+function openRunModal(){ document.getElementById('runModal').classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function doDelete(){ closeModal('deleteModal'); clearAll(); showToast('\u5df2\u5220\u9664\u9009\u4e2d\u573a\u666f'); }
+function doRun(){ closeModal('runModal'); showToast('\u4efb\u52a1\u5df2\u63d0\u4ea4'); }
+function doRefresh(btn){ if(!btn)return; btn.classList.add('btn-spin'); setTimeout(function(){btn.classList.remove('btn-spin');showToast('\u6570\u636e\u5df2\u5237\u65b0');},700); }
+
+function setTheme(mode){
+  document.documentElement.setAttribute('data-theme',mode);
+  try{localStorage.setItem('simone-theme',mode);}catch(e){}
+  syncThemeCheck();
+  var m=document.getElementById('settingsMenu'); if(m)m.classList.remove('open');
+}
+function syncThemeCheck(){
+  var mode=document.documentElement.getAttribute('data-theme');
+  var cl=document.getElementById('checkLight'),cd=document.getElementById('checkDark');
+  if(cl)cl.style.display=(mode==='light')?'':'none';
+  if(cd)cd.style.display=(mode==='dark')?'':'none';
+}
+function showToast(msg,type){
+  var area=document.getElementById('toastArea');
+  var t=document.createElement('div');
+  t.className='toast'+(type?' '+type+'-toast':'');
+  t.textContent=msg;
+  area.appendChild(t);
+  setTimeout(function(){t.remove();},3000);
+}
+document.addEventListener('click',function(){
+  document.querySelectorAll('.dd-menu.open,.filter-dd.open').forEach(function(el){el.classList.remove('open');});
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){closeDrawer();closeModal('deleteModal');closeModal('runModal');document.querySelectorAll('.dd-menu.open').forEach(function(el){el.classList.remove('open');});}
+});
+buildTable();
+
+function openThemeMenu(){clearTimeout(window._tmTimer);var m=document.getElementById('settingsMenu');if(m)m.style.display='block';}
+function scheduleCloseThemeMenu(){window._tmTimer=setTimeout(function(){var m=document.getElementById('settingsMenu');if(m)m.style.display='none';var s=document.getElementById('appearSubMenu');if(s)s.style.display='none';},150);}
+function cancelCloseThemeMenu(){clearTimeout(window._tmTimer);}
+function openAppearSubMenu(){clearTimeout(window._asTimer);var s=document.getElementById('appearSubMenu');if(s)s.style.display='block';}
+function scheduleCloseAppearSubMenu(immediate){if(immediate){var s=document.getElementById('appearSubMenu');if(s)s.style.display='none';return;}window._asTimer=setTimeout(function(){var s=document.getElementById('appearSubMenu');if(s)s.style.display='none';},150);}
+function cancelCloseAppearSubMenu(){clearTimeout(window._asTimer);}
+
+(function(){var t=document.documentElement.getAttribute('data-theme')||'light';var cl=document.getElementById('checkLight');var cd=document.getElementById('checkDark');if(cl)cl.style.display=t==='light'?'':'none';if(cd)cd.style.display=t==='dark'?'':'none';})();
+</script>
+<div id="ctxMenu" class="ctx-menu"></div>
+
+<script>
+/* ─── Context Menu ─── */
+(function(){
+  var CTX0=[{label:'导入场景',fn:function(){showToast('请选择场景文件','')},danger:false,arrow:false},{sep:1},{label:'刷新',fn:function(){showToast('已刷新','')},danger:false,arrow:false}];
+  var CTX1=[{label:'查看详情',fn:function(){showToast('已打开详情面板','')},danger:false,arrow:false},{label:'编辑',fn:function(){showToast('正在打开编辑器','')},danger:false,arrow:false},{sep:1},{label:'移动至',fn:function(){showToast('请选择目标目录','')},danger:false,arrow:true},{label:'添加标签',fn:function(){showToast('添加标签','')},danger:false,arrow:false},{label:'导出',fn:function(){showToast('导出中...','')},danger:false,arrow:true},{sep:1},{label:'删除',fn:function(){typeof openDeleteModal !== 'undefined' ? openDeleteModal() : showToast('已删除','')},danger:true,arrow:false}];
+  var CTXN=[{label:'批量移动至',fn:function(){showToast('请选择目标目录','')},danger:false,arrow:true},{label:'批量添加标签',fn:function(){showToast('添加标签','')},danger:false,arrow:false},{label:'批量导出',fn:function(){showToast('导出中...','')},danger:false,arrow:false},{sep:1},{label:'批量删除',fn:function(){typeof openDeleteModal !== 'undefined' ? openDeleteModal() : showToast('已删除','')},danger:true,arrow:false}];
+
+  function _getSelCount(){return typeof selectedRows!=='undefined'?selectedRows.size:0;}
+
+  function _renderItems(items){
+    return items.map(function(it){
+      if(it.sep)return '<div class="ctx-sep"></div>';
+      var cls='ctx-item'+(it.danger?' danger':'');
+      var arrow=it.arrow?'<span class="ctx-arrow">›</span>':'';
+      var el=document.createElement('div');
+      el.className=cls;
+      el.innerHTML=arrow;
+      el.insertAdjacentHTML('afterbegin',it.label);
+      el.addEventListener('click',function(e){e.stopPropagation();it.fn();_ctxHide();});
+      return el.outerHTML;
+    }).join('');
+  }
+
+  function _ctxShow(x,y){
+    var el=document.getElementById('ctxMenu');
+    if(!el)return;
+    var n=_getSelCount();
+    var items=n===0?CTX0:n===1?CTX1:CTXN;
+    el.innerHTML=_renderItems(items);
+    el.style.display='block';
+    var vw=window.innerWidth,vh=window.innerHeight;
+    var mw=el.offsetWidth,mh=el.offsetHeight;
+    el.style.left=(x+mw>vw?Math.max(0,x-mw):x)+'px';
+    el.style.top=(y+mh>vh?Math.max(0,y-mh):y)+'px';
+  }
+
+  window._ctxHide=function(){
+    var el=document.getElementById('ctxMenu');
+    if(el)el.style.display='none';
+  };
+
+  document.addEventListener('contextmenu',function(e){
+    var row=e.target.closest('tr[id^="row-"]');
+    var card=e.target.closest('.case-card,.sa-card,.scene-card');
+    var area=e.target.closest('#tbody,.tpane,.card-scroller,.cardgrid,.scene-grid,.sa-grid,.map-grid,.data-table tbody,.data-table');
+    if(row||card||area){
+      e.preventDefault();
+      _ctxShow(e.clientX,e.clientY);
+    } else {
+      _ctxHide();
+    }
+  });
+
+  document.addEventListener('click',function(e){
+    var el=document.getElementById('ctxMenu');
+    if(el&&!el.contains(e.target))_ctxHide();
+  });
+
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape')_ctxHide();
+  });
+})();
+
+// ===== Tag Search JS =====
+var _tagData=[
+  {name:'自动驾驶',count:142},
+  {name:'高速行驶',count:87},
+  {name:'城市交叉路口',count:65},
+  {name:'障碍物避让',count:54},
+  {name:'跟车行为',count:49},
+  {name:'紧急制动',count:38},
+  {name:'变道超车',count:32},
+  {name:'行人避让',count:28},
+  {name:'夜间行驶',count:21},
+  {name:'恶劣天气',count:17},
+  {name:'车道保持',count:15},
+  {name:'红绿灯识别',count:12}
+];
+var _tagSelected=[];
+function openTagSrch(evt){
+  evt.stopPropagation();
+  var el=document.getElementById('tagSrch');
+  var panel=document.getElementById('tagSrchPanel');
+  if(!el||!panel)return;
+  var isOpen=el.classList.contains('open');
+  document.querySelectorAll('.tag-srch.open').forEach(function(e){
+    e.classList.remove('open');
+    var p=e.querySelector('.tag-srch-panel');
+    if(p)p.classList.remove('open');
+  });
+  if(!isOpen){
+    el.classList.add('open');
+    panel.classList.add('open');
+    renderTagSrch('');
+    var inp=document.getElementById('tspInput');
+    if(inp)inp.value='';
+    setTimeout(function(){
+      var r=panel.getBoundingClientRect();
+      if(r.bottom>window.innerHeight-20){
+        panel.style.top='auto';panel.style.bottom='calc(100% + 5px)';
+      } else {panel.style.top='';panel.style.bottom='';}
+      document.addEventListener('click',_closeTagSrchOutside,{once:true});
+    },0);
+  }
+}
+function _closeTagSrchOutside(evt){
+  var panel=document.getElementById('tagSrchPanel');
+  if(panel&&!panel.contains(evt.target))closeTagSrch();
+  else document.addEventListener('click',_closeTagSrchOutside,{once:true});
+}
+function closeTagSrch(){
+  var el=document.getElementById('tagSrch');
+  var panel=document.getElementById('tagSrchPanel');
+  if(el)el.classList.remove('open');
+  if(panel)panel.classList.remove('open');
+}
+function renderTagSrch(q){
+  var body=document.getElementById('tspBody');
+  var empty=document.getElementById('tspEmpty');
+  var secHead=document.getElementById('tspSectionHead');
+  if(!body)return;
+  q=(q||'').trim().toLowerCase();
+  var list=q?_tagData.filter(function(t){return t.name.indexOf(q)>=0;}):_tagData.slice();
+  if(secHead)secHead.textContent=q?'搜索结果':'热门标签';
+  if(list.length===0){
+    body.innerHTML='';
+    if(empty)empty.style.display='block';
+    return;
+  }
+  if(empty)empty.style.display='none';
+  body.innerHTML=list.map(function(t){
+    var sel=_tagSelected.indexOf(t.name)>=0;
+    return '<div class="tsp-item'+(sel?' selected':'')+'" onclick="toggleTagItem(this,event,\'' +t.name+ '\')">'
+      +'<div class="tsp-cb"></div>'
+      +'<span class="tsp-tag-name">'+t.name+'</span>'
+      +'<span class="tsp-tag-count">'+t.count+'</span>'
+      +'</div>';
+  }).join('');
+}
+function toggleTagItem(el,evt,name){
+  evt.stopPropagation();
+  var idx=_tagSelected.indexOf(name);
+  if(idx>=0){_tagSelected.splice(idx,1);el.classList.remove('selected');}
+  else{_tagSelected.push(name);el.classList.add('selected');}
+  updateTagSelCount();
+}
+function updateTagSelCount(){
+  var el=document.getElementById('tspSelCount');
+  if(el)el.innerHTML='已选 <strong>'+_tagSelected.length+'</strong> 个';
+}
+function filterTagSrch(val){
+  var cb=document.getElementById('tspClearBtn');
+  if(cb)cb.className='tsp-srch-clear'+(val?' show':'');
+  renderTagSrch(val);
+}
+function clearTagSrchInput(){
+  var inp=document.getElementById('tspInput');
+  if(inp){inp.value='';filterTagSrch('');}
+}
+function resetTagSrch(){
+  _tagSelected=[];
+  clearTagSrchInput();
+  updateTagChips();
+  updateTagSelCount();
+}
+function applyTagSrch(){
+  updateTagChips();
+  closeTagSrch();
+  if(typeof showToast==='function')showToast('标签筛选已应用');
+}
+function updateTagChips(){
+  var chips=document.getElementById('tsChips');
+  if(!chips)return;
+  var inMfp=chips.closest('.mfp-group');
+  if(_tagSelected.length===0){
+    chips.innerHTML='<span class="ts-placeholder">'+(inMfp?'输入标签关键词':'标签检索')+'</span>';
+  } else {
+    chips.innerHTML=_tagSelected.slice(0,3).map(function(n){
+      return '<span class="ts-chip">'+n+'<span class="ts-chip-del" onclick="removeTagChip(\'' +n+ '\',event)">✕</span></span>';
+    }).join('')+(_tagSelected.length>3?'<span class="ts-count-badge">+'+(_tagSelected.length-3)+'</span>':'');
+  }
+}
+function removeTagChip(name,evt){
+  evt.stopPropagation();
+  var idx=_tagSelected.indexOf(name);
+  if(idx>=0)_tagSelected.splice(idx,1);
+  updateTagChips();
+  updateTagSelCount();
+}
+
+</script>
+</body>
+</html>
