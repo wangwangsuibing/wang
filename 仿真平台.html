@@ -6,7 +6,7 @@
 (function(){var t=new URLSearchParams(window.location.search).get('theme')||localStorage.getItem('app-theme')||'light';document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('app-theme',t);}catch(e){}})();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>自动驾驶仿真测试平台 · 我的用例（卡片视图）</title>
+<title>机器人仿真测试平台 · 我的用例（卡片视图）</title>
 <style>
 :root {
   /* Layout constants  not in tokens.css */
@@ -639,7 +639,7 @@ input,textarea{outline:none}
     </div>
     <div class="gitem" onclick="toggleNav(this)" tabindex="0">
       <div class="ic-w"><svg viewBox="0 0 14 14"><rect x="1.5" y="4" width="11" height="7" rx="1.5"/><path d="M3.5 4V3a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1"/><circle cx="4" cy="11" r="1.5"/><circle cx="10" cy="11" r="1.5"/></svg></div>
-      <span>主车管理</span><svg class="chev" viewBox="0 0 12 12"><polyline points="4,3 8,6 4,9"/></svg>
+      <span>机器人本体管理</span><svg class="chev" viewBox="0 0 12 12"><polyline points="4,3 8,6 4,9"/></svg>
     </div>
     <div class="gitem" onclick="toggleNav(this)" tabindex="0">
       <div class="ic-w"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5"/><path d="M7 4v3.5l2 1.5"/></svg></div>
@@ -651,7 +651,7 @@ input,textarea{outline:none}
     </div>
     <div class="gsub show">
       <div class="gsubitem" tabindex="0" onclick="_nav('Resource Management_SceneAsset_Light.html')">场景资产库</div>
-      <div class="gsubitem" tabindex="0">主车资源库</div>
+      <div class="gsubitem" tabindex="0">本体资源库</div>
       <div class="gsubitem" tabindex="0">评测指标库</div>
     </div>
     <div class="gitem expanded" onclick="toggleNav(this)" tabindex="0">
@@ -724,7 +724,7 @@ input,textarea{outline:none}
                 <button class="icon-btn" style="width:18px;height:18px" title="新建子分组"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg></button>
               </div>
             </div>
-            <div class="ti" onclick="selectTI(this)" tabindex="0"><span class="dot"></span><span class="ti-lbl">侧前方车辆插入</span><span class="cnt">11</span></div>
+            <div class="ti" onclick="selectTI(this)" tabindex="0"><span class="dot"></span><span class="ti-lbl">侧前方动态障碍物切入</span><span class="cnt">11</span></div>
             <div class="ti" onclick="selectTI(this)" tabindex="0"><span class="dot"></span><span class="ti-lbl">冲突对象突然出现</span><span class="cnt">9</span></div>
             <div class="ti" onclick="selectTI(this)" tabindex="0"><span class="dot"></span><span class="ti-lbl">紧密跟驰</span><span class="cnt">7</span></div>
           </div>
@@ -736,7 +736,7 @@ input,textarea{outline:none}
         <div class="tg">
           <div class="tg-hdr open" onclick="toggleTG(this)" tabindex="0"><svg class="tg-arrow" viewBox="0 0 10 10"><polyline points="3,2 7,5 3,8"/></svg>标准法规<span class="tg-cnt">36</span></div>
           <div class="tg-body open">
-            <div class="ti" onclick="selectTI(this)" tabindex="0"><span class="dot"></span><span class="ti-lbl">中国汽车场景库</span><span class="cnt">10</span></div>
+            <div class="ti" onclick="selectTI(this)" tabindex="0"><span class="dot"></span><span class="ti-lbl">通用机器人场景库</span><span class="cnt">10</span></div>
             <div class="ti" onclick="selectTI(this)" tabindex="0"><span class="dot"></span><span class="ti-lbl">江淮多传感器</span><span class="cnt">14</span></div>
             <div class="ti" onclick="selectTI(this)" tabindex="0"><span class="dot"></span><span class="ti-lbl">自动生成场景</span><span class="cnt">8</span></div>
             <div class="ti" onclick="selectTI(this)" tabindex="0"><span class="dot"></span><span class="ti-lbl">自动生成场景示例</span><span class="cnt">4</span></div>
@@ -801,9 +801,9 @@ input,textarea{outline:none}
     类型 <svg viewBox="0 0 10 10"><polyline points="2,4 5,7 8,4"/></svg>
     <div class="filter-dd" id="fd-type">
       <div class="filter-dd-head">仿真类型</div>
-      <div class="filter-opt" onclick="setFilter(this,'fd-type')"><div class="fo-check"></div>WorldSim（世界仿真）</div>
-      <div class="filter-opt" onclick="setFilter(this,'fd-type')"><div class="fo-check"></div>RealSim（实车仿真）</div>
-      <div class="filter-opt" onclick="setFilter(this,'fd-type')"><div class="fo-check"></div>LogSim（数据回放）</div>
+      <div class="filter-opt" onclick="setFilter(this,'fd-type')"><div class="fo-check"></div>WorldSim（世界模型仿真）</div>
+      <div class="filter-opt" onclick="setFilter(this,'fd-type')"><div class="fo-check"></div>RealSim（真机在环）</div>
+      <div class="filter-opt" onclick="setFilter(this,'fd-type')"><div class="fo-check"></div>LogSim（真机数据回放）</div>
     </div>
   </div>
         <div class="fsel" onclick="toggleFilterDD('fd-map',event)">
@@ -811,7 +811,7 @@ input,textarea{outline:none}
     <div class="filter-dd" id="fd-map">
       <div class="filter-dd-head">地图</div>
       <div class="filter-opt" onclick="setFilter(this,'fd-map')"><div class="fo-check"></div>城市路网 v2.1</div>
-      <div class="filter-opt" onclick="setFilter(this,'fd-map')"><div class="fo-check"></div>高速路网 v1.8</div>
+      <div class="filter-opt" onclick="setFilter(this,'fd-map')"><div class="fo-check"></div>园区路网 v1.8</div>
       <div class="filter-opt" onclick="setFilter(this,'fd-map')"><div class="fo-check"></div>园区内部道路</div>
       <div class="filter-opt" onclick="setFilter(this,'fd-map')"><div class="fo-check"></div>城区采集 2024-10</div>
     </div>
@@ -821,8 +821,8 @@ input,textarea{outline:none}
     <div class="filter-dd" id="fd-asset">
       <div class="filter-dd-head">静态场景资产</div>
       <div class="filter-opt" onclick="setFilter(this,'fd-asset')"><div class="fo-check"></div>静态场景包 v3.2</div>
-      <div class="filter-opt" onclick="setFilter(this,'fd-asset')"><div class="fo-check"></div>高速静态包 v2.0</div>
-      <div class="filter-opt" onclick="setFilter(this,'fd-asset')"><div class="fo-check"></div>行人路口包 v1.5</div>
+      <div class="filter-opt" onclick="setFilter(this,'fd-asset')"><div class="fo-check"></div>园区静态包 v2.0</div>
+      <div class="filter-opt" onclick="setFilter(this,'fd-asset')"><div class="fo-check"></div>行人交互包 v1.5</div>
       <div class="filter-opt" onclick="setFilter(this,'fd-asset')"><div class="fo-check"></div>园区静态包 v1.1</div>
       <div class="filter-opt" onclick="setFilter(this,'fd-asset')"><div class="fo-check"></div>GB标准静态包</div>
     </div>
@@ -889,11 +889,11 @@ input,textarea{outline:none}
   <div class="drawer-body">
     <div class="form-row">
       <div class="form-group"><label class="form-label">所属分组<span class="req">*</span></label><select class="form-select"><option>危险工况 / 转向冲突</option><option>案例教学</option><option>标准法规 / GB/T 39263</option></select></div>
-      <div class="form-group"><label class="form-label">用例类型<span class="req">*</span></label><select class="form-select"><option>WorldSim（世界仿真）</option><option>RealSim（实车仿真）</option><option>LogSim（数据回放）</option></select></div>
+      <div class="form-group"><label class="form-label">用例类型<span class="req">*</span></label><select class="form-select"><option>WorldSim（世界模型仿真）</option><option>RealSim（真机在环）</option><option>LogSim（真机数据回放）</option></select></div>
     </div>
     <div class="form-group"><label class="form-label">用例名称<span class="req">*</span></label><input class="form-input" type="text" placeholder="请输入用例名称"/></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">地图<span class="req">*</span></label><select class="form-select"><option>城市路网 v2.1</option><option>高速路网 v1.8</option><option>园区内部道路</option></select></div>
+      <div class="form-group"><label class="form-label">地图<span class="req">*</span></label><select class="form-select"><option>城市路网 v2.1</option><option>园区路网 v1.8</option><option>园区内部道路</option></select></div>
       <div class="form-group"><label class="form-label">优先级</label><select class="form-select"><option>P0 — 最高</option><option>P1 — 高</option><option>P2 — 中</option><option>P3 — 低</option></select></div>
     </div>
     <div class="form-group"><label class="form-label">静态场景资产</label><input class="form-input" type="text" placeholder="选择静态场景资产包"/></div>
@@ -982,7 +982,7 @@ input,textarea{outline:none}
               </div>
             </div>
           </div>
-          <!-- 车辆配置 subsection -->
+          <!-- 本体配置 subsection -->
           <div class="modal-subsection">
             <div class="subsection-head"><span>&#36710;&#36742;&#37197;&#32622;</span><button class="btn-link" onclick="event.stopPropagation()">&#20445;&#23384;&#20026;&#40664;&#35748;&#37197;&#32622;</button></div>
             <div class="modal-section-body" style="padding:8px 12px 6px">
@@ -1083,7 +1083,7 @@ input,textarea{outline:none}
       <div class="set-list">
         <div class="set-item" onclick="toggleSetItem(this)">
           <div class="set-item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="3" width="14" height="11" rx="2"/><path d="M1 7h14"/><line x1="5" y1="3" x2="5" y2="7"/></svg></div>
-          <div class="set-item-info"><div class="set-item-name">高速超车场景集</div><div class="set-item-meta">已含 48 个用例 · 更新于 2024-11-20</div></div>
+          <div class="set-item-info"><div class="set-item-name">动态避障场景集</div><div class="set-item-meta">已含 48 个用例 · 更新于 2024-11-20</div></div>
           <div class="set-item-chk"></div>
         </div>
         <div class="set-item" onclick="toggleSetItem(this)">
@@ -1116,12 +1116,12 @@ input,textarea{outline:none}
 <script>
 const CASES = [
   {id:'TC-2024-0001',name:'场景名称',type:'4DGS',sub:'PTH',map:'城市路网 v2.1',asset:'静态场景包 v3.2',tags:['Cut-in','Lane Change','Overtaking'],author:'张明平',date:'2023-11-29 17:00:00',thumb:0,star:true},
-  {id:'TC-2024-0003',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'高速路网 v1.8',asset:'高速静态包 v2.0',tags:['Overtaking','Sunny','Rainy'],author:'李小明',date:'2023-11-29 17:00:00',thumb:1,star:false},
-  {id:'TC-2024-0004',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'城市路网 v2.1',asset:'行人路口包 v1.5',tags:['Overtaking','Sunny','Rainy'],author:'王建军',date:'2023-11-29 17:00:00',thumb:2,star:true},
-  {id:'TC-2024-0005',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'高速路网 v1.8',asset:'高速静态包 v2.0',tags:['Overtaking','Sunny','Rainy'],author:'张明平',date:'2023-11-29 17:00:00',thumb:3,star:false},
+  {id:'TC-2024-0003',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'园区路网 v1.8',asset:'园区静态包 v2.0',tags:['Overtaking','Sunny','Rainy'],author:'李小明',date:'2023-11-29 17:00:00',thumb:1,star:false},
+  {id:'TC-2024-0004',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'城市路网 v2.1',asset:'行人交互包 v1.5',tags:['Overtaking','Sunny','Rainy'],author:'王建军',date:'2023-11-29 17:00:00',thumb:2,star:true},
+  {id:'TC-2024-0005',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'园区路网 v1.8',asset:'园区静态包 v2.0',tags:['Overtaking','Sunny','Rainy'],author:'张明平',date:'2023-11-29 17:00:00',thumb:3,star:false},
   {id:'TC-2024-0006',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'城区采集 2024-10',asset:'—',tags:['Overtaking','Sunny','Rainy'],author:'陈小楠',date:'2023-11-29 17:00:00',thumb:0,star:false},
   {id:'TC-2024-0007',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'城市路网 v2.1',asset:'静态场景包 v3.2',tags:['Overtaking','Sunny','Rainy'],author:'李小明',date:'2023-11-29 17:00:00',thumb:1,star:false},
-  {id:'TC-2024-0008',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'高速路网 v1.8',asset:'高速静态包 v2.0',tags:['Overtaking','Sunny','Rainy'],author:'刘宇辉',date:'2023-11-29 17:00:00',thumb:2,star:true},
+  {id:'TC-2024-0008',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'园区路网 v1.8',asset:'园区静态包 v2.0',tags:['Overtaking','Sunny','Rainy'],author:'刘宇辉',date:'2023-11-29 17:00:00',thumb:2,star:true},
   {id:'TC-2024-0009',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'园区内部道路',asset:'园区静态包 v1.1',tags:['Overtaking','Sunny','Rainy'],author:'张明平',date:'2023-11-29 17:00:00',thumb:3,star:false},
   {id:'TC-2024-0010',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'城市路网 v2.1',asset:'静态场景包 v3.2',tags:['Overtaking','Sunny','Rainy'],author:'王建军',date:'2023-11-29 17:00:00',thumb:0,star:false},
   {id:'TC-2024-0011',name:'Scenario_Case_003_V2_Final',type:'4DGS',sub:'PTH',map:'城市路网 v2.1',asset:'GB标准静态包',tags:['Overtaking','Sunny','Rainy'],author:'陈小楠',date:'2023-11-29 17:00:00',thumb:1,star:true}
@@ -1397,7 +1397,7 @@ function renderTagChips(id) {
 var _moveFolderData = {
   mine: [
     { id:'g1', label:'危险工况', children:[
-        { id:'g1-1', label:'高速切入场景', duplicate:false },
+        { id:'g1-1', label:'动态切入场景', duplicate:false },
         { id:'g1-2', label:'紧急制动', duplicate:false },
         { id:'g1-3', label:'Level2-01', duplicate:true }
       ]},
@@ -1607,7 +1607,7 @@ function toggleBLTag(el, tag) {
           <div class="ws-tag-opt" onclick="toggleTagOpt('wsTag','优先级 P2')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>优先级 P2</div>
           <div class="ws-tag-opt" onclick="toggleTagOpt('wsTag','夜间场景')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>夜间场景</div>
           <div class="ws-tag-opt" onclick="toggleTagOpt('wsTag','雨天场景')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>雨天场景</div>
-          <div class="ws-tag-opt" onclick="toggleTagOpt('wsTag','高速场景')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>高速场景</div>
+          <div class="ws-tag-opt" onclick="toggleTagOpt('wsTag','园区场景')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>园区场景</div>
           <div class="ws-tag-opt" onclick="toggleTagOpt('wsTag','城市场景')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>城市场景</div>
           <div class="ws-tag-opt" onclick="toggleTagOpt('wsTag','Cut-in')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>Cut-in</div>
           <div class="ws-tag-opt" onclick="toggleTagOpt('wsTag','Overtaking')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>Overtaking</div>
@@ -1666,7 +1666,7 @@ function toggleBLTag(el, tag) {
           <div class="ws-tag-opt" onclick="toggleTagOpt('lsTag','优先级 P2')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>优先级 P2</div>
           <div class="ws-tag-opt" onclick="toggleTagOpt('lsTag','夜间场景')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>夜间场景</div>
           <div class="ws-tag-opt" onclick="toggleTagOpt('lsTag','雨天场景')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>雨天场景</div>
-          <div class="ws-tag-opt" onclick="toggleTagOpt('lsTag','高速场景')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>高速场景</div>
+          <div class="ws-tag-opt" onclick="toggleTagOpt('lsTag','园区场景')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>园区场景</div>
           <div class="ws-tag-opt" onclick="toggleTagOpt('lsTag','城市场景')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>城市场景</div>
           <div class="ws-tag-opt" onclick="toggleTagOpt('lsTag','Cut-in')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>Cut-in</div>
           <div class="ws-tag-opt" onclick="toggleTagOpt('lsTag','Overtaking')"><span class="ws-tag-cb"><svg class="ws-tag-cb-check" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polyline points="2,5 4,8 8,3"/></svg></span>Overtaking</div>
@@ -1689,8 +1689,8 @@ function toggleBLTag(el, tag) {
         <label class="ws-label">场景资产</label>
         <select class="ws-select">
           <option value="">请选择场景资产</option>
-          <option>[4DGS] 城市路口_001</option>
-          <option>[3DGS] 高速匝道_007</option>
+          <option>[4DGS] 园区路口_001</option>
+          <option>[3DGS] 园区坡道_007</option>
           <option>[UE] 夜间雨天_012</option>
           <option>[4DGS] 环岛场景_003</option>
         </select>
@@ -1739,7 +1739,7 @@ function toggleBLTag(el, tag) {
         <div class="bl-tag-item" onclick="toggleBLTag(this,'优先级 P1')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2997FF"></span>优先级 P1</div>
         <div class="bl-tag-item" onclick="toggleBLTag(this,'优先级 P2')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#C07820"></span>优先级 P2</div>
         <div class="bl-tag-item" onclick="toggleBLTag(this,'夜间场景')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#9254DE"></span>夜间场景</div>
-        <div class="bl-tag-item" onclick="toggleBLTag(this,'高速工况')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2E9E70"></span>高速工况</div>
+        <div class="bl-tag-item" onclick="toggleBLTag(this,'园区工况')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2E9E70"></span>园区工况</div>
         <div class="bl-tag-item" onclick="toggleBLTag(this,'城市道路')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2E9E70"></span>城市道路</div>
         <div class="bl-tag-item" onclick="toggleBLTag(this,'雨天')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2D8FFF"></span>雨天</div>
         <div class="bl-tag-item" onclick="toggleBLTag(this,'雾天')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2D8FFF"></span>雾天</div>
@@ -1765,7 +1765,7 @@ function toggleBLTag(el, tag) {
         <div class="bl-tag-item" onclick="toggleBLTag(this,'优先级 P1')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2997FF"></span>优先级 P1</div>
         <div class="bl-tag-item" onclick="toggleBLTag(this,'优先级 P2')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#C07820"></span>优先级 P2</div>
         <div class="bl-tag-item" onclick="toggleBLTag(this,'夜间场景')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#9254DE"></span>夜间场景</div>
-        <div class="bl-tag-item" onclick="toggleBLTag(this,'高速工况')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2E9E70"></span>高速工况</div>
+        <div class="bl-tag-item" onclick="toggleBLTag(this,'园区工况')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2E9E70"></span>园区工况</div>
         <div class="bl-tag-item" onclick="toggleBLTag(this,'城市道路')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2E9E70"></span>城市道路</div>
         <div class="bl-tag-item" onclick="toggleBLTag(this,'雨天')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2D8FFF"></span>雨天</div>
         <div class="bl-tag-item" onclick="toggleBLTag(this,'雾天')"><span class="bl-cb"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"><polyline points="2,5 4,8 8,3"/></svg></span><span class="bl-tag-dot" style="background:#2D8FFF"></span>雾天</div>
@@ -1846,18 +1846,18 @@ function toggleBLTag(el, tag) {
 
 // ===== Tag Search JS =====
 var _tagData=[
-  {name:'自动驾驶',count:142},
-  {name:'高速行驶',count:87},
-  {name:'城市交叉路口',count:65},
+  {name:'具身智能',count:142},
+  {name:'自主导航',count:87},
+  {name:'室内外过渡区',count:65},
   {name:'障碍物避让',count:54},
-  {name:'跟车行为',count:49},
+  {name:'目标跟随',count:49},
   {name:'紧急制动',count:38},
-  {name:'变道超车',count:32},
+  {name:'避障绕行',count:32},
   {name:'行人避让',count:28},
   {name:'夜间行驶',count:21},
   {name:'恶劣天气',count:17},
-  {name:'车道保持',count:15},
-  {name:'红绿灯识别',count:12}
+  {name:'路径保持',count:15},
+  {name:'目标识别',count:12}
 ];
 var _tagSelected=[];
 function openTagSrch(evt){
