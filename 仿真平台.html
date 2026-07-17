@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <script>
-(function(){var t=new URLSearchParams(window.location.search).get('theme')||localStorage.getItem('simone-theme')||'light';document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('simone-theme',t);}catch(e){}})();
+(function(){var t=new URLSearchParams(window.location.search).get('theme')||localStorage.getItem('app-theme')||'light';document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('app-theme',t);}catch(e){}})();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>自动驾驶仿真测试平台 · 我的用例（卡片视图）</title>
@@ -1177,7 +1177,7 @@ function closeAllDD(){document.querySelectorAll('.dd-menu.open,.dropdown-menu.op
 document.addEventListener('click',closeAllDD);
 function setTheme(mode){
   document.documentElement.setAttribute('data-theme',mode);
-  localStorage.setItem('simone-theme',mode);
+  localStorage.setItem('app-theme',mode);
   document.getElementById('checkLight').style.display=mode==='light'?'':'none';
   document.getElementById('checkDark').style.display=mode==='dark'?'':'none';
   closeAllDD();
@@ -1244,8 +1244,8 @@ function _nav(url){
   }
   var sep=url.indexOf("?")>=0?"&":"?";
   url+=sep+"theme="+t;
-  try{sessionStorage.setItem("simone-theme",t);}catch(e){}
-  try{localStorage.setItem("simone-theme",t);}catch(e){}
+  try{sessionStorage.setItem("app-theme",t);}catch(e){}
+  try{localStorage.setItem("app-theme",t);}catch(e){}
   window.location.href=url;
 }
 
@@ -1289,7 +1289,7 @@ function cancelCloseAppearSubMenu(){clearTimeout(window._asTimer);}
 function openThemeMenu(){cancelCloseThemeMenu();var m=document.getElementById('themeMenu');if(m)m.classList.add('open');}
 function scheduleCloseThemeMenu(){window._tmTimer=setTimeout(function(){var m=document.getElementById('themeMenu');if(m)m.classList.remove('open');},150);}
 function cancelCloseThemeMenu(){if(window._tmTimer){clearTimeout(window._tmTimer);window._tmTimer=null;}}
-function setTheme(mode){document.documentElement.setAttribute('data-theme',mode);try{localStorage.setItem('simone-theme',mode);}catch(e){}var cl=document.getElementById('checkLight');var cd=document.getElementById('checkDark');if(cl)cl.style.display=mode==='light'?'':'none';if(cd)cd.style.display=mode==='dark'?'':'none';cancelCloseThemeMenu();var m=document.getElementById('themeMenu');if(m)m.classList.remove('open');}
+function setTheme(mode){document.documentElement.setAttribute('data-theme',mode);try{localStorage.setItem('app-theme',mode);}catch(e){}var cl=document.getElementById('checkLight');var cd=document.getElementById('checkDark');if(cl)cl.style.display=mode==='light'?'':'none';if(cd)cd.style.display=mode==='dark'?'':'none';cancelCloseThemeMenu();var m=document.getElementById('themeMenu');if(m)m.classList.remove('open');}
 (function(){var t=document.documentElement.getAttribute('data-theme')||'light';var cl=document.getElementById('checkLight');var cd=document.getElementById('checkDark');if(cl)cl.style.display=t==='light'?'':'none';if(cd)cd.style.display=t==='dark'?'':'none';})();
 
 function openWorldSimModal() {

@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8"/>
 <script>
-(function(){var t=new URLSearchParams(window.location.search).get('theme')||localStorage.getItem('simone-theme')||'light';document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('simone-theme',t);}catch(e){}})();
+(function(){var t=new URLSearchParams(window.location.search).get('theme')||localStorage.getItem('app-theme')||'light';document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('app-theme',t);}catch(e){}})();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Dataverse · 场景管理</title>
+<title>数据闭环平台 · 场景管理</title>
 <style>
 
 :root{--sidebar-w:240px;--pad:14px;--gap:14px;--r-3:var(--r-xl);--t:var(--dur-base) var(--ease-out);--t-fast:var(--dur-fast) var(--ease-out);}
@@ -300,8 +300,8 @@ tbody td{padding:11px 12px;font-size:13px;color:var(--color-text-1);border-botto
       <span>资产管理</span><svg class="chev" viewBox="0 0 12 12"><polyline points="4,3 8,6 4,9"/></svg>
     </div>
     <div class="gsub show">
-      <div class="gsubitem" tabindex="0" onclick="_nav('Dataverse_Scene Management_SceneAsset_Light.html')">静态场景资产</div>
-      <div class="gsubitem" onclick="_nav('Dataverse_Scene Management_ModelAsset_Light.html')">模型资产</div>
+      <div class="gsubitem" tabindex="0" onclick="_nav('DataPlatform_Scene Management_SceneAsset_Light.html')">静态场景资产</div>
+      <div class="gsubitem" onclick="_nav('DataPlatform_Scene Management_ModelAsset_Light.html')">模型资产</div>
       <div class="gsubitem" tabindex="0">地图资产</div>
     </div>
     <div class="gitem expanded" onclick="toggleNav(this)" tabindex="0">
@@ -386,7 +386,7 @@ tbody td{padding:11px 12px;font-size:13px;color:var(--color-text-1);border-botto
         </div>
       </div>
       <button class="icon-btn active" title="列表视图"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="4" x2="13" y2="4"/><line x1="3" y1="8" x2="13" y2="8"/><line x1="3" y1="12" x2="13" y2="12"/></svg></button>
-      <button class="icon-btn" title="缩略图视图" onclick="_nav('Dataverse_Scene Management_Thumbnail_Light.html')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg></button>
+      <button class="icon-btn" title="缩略图视图" onclick="_nav('DataPlatform_Scene Management_Thumbnail_Light.html')"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg></button>
     </div>
   </div>
   <div class="filterbar">
@@ -471,7 +471,7 @@ tbody td{padding:11px 12px;font-size:13px;color:var(--color-text-1);border-botto
 function _nav(url) {
   try {
     var theme = document.documentElement.getAttribute('data-theme') || 'light';
-    if (url.indexOf('Resource Management') > -1 || url.indexOf('Dataverse') > -1) {
+    if (url.indexOf('Resource Management') > -1 || url.indexOf('DataPlatform') > -1) {
       if (theme === 'dark') url = url.replace('_Light.html','_Dark.html').replace('Light.html','Dark.html');
       else url = url.replace('_Dark.html','_Light.html').replace('Dark.html','Light.html');
     }
@@ -633,7 +633,7 @@ function doRefresh(btn){ if(!btn)return; btn.classList.add('btn-spin'); setTimeo
 
 function setTheme(mode){
   document.documentElement.setAttribute('data-theme',mode);
-  try{localStorage.setItem('simone-theme',mode);}catch(e){}
+  try{localStorage.setItem('app-theme',mode);}catch(e){}
   syncThemeCheck();
   var m=document.getElementById('settingsMenu'); if(m)m.classList.remove('open');
 }
