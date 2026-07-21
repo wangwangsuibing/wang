@@ -58,7 +58,8 @@
     </div>
 
     <div id="panel-tasks" class="panel" style="display:none">
-      <h3>新建任务</h3>
+      <details class="sec">
+      <summary>＋ 新建任务</summary>
       <input id="task-name" placeholder="任务名称，如：晚高峰路口采集">
       <select id="task-vehicle"><option value="">自动分配</option></select>
       <select id="task-path"><option value="">选择路线</option></select>
@@ -74,26 +75,31 @@
       </select>
       <input id="task-event-rules" placeholder="事件触发（可选）：AEB:10:30 = 触发前10s后30s">
       <button id="btn-create-task" class="primary">＋ 创建任务</button>
-      <h3>采集活动（批量任务）</h3>
+      </details>
+      <details class="sec">
+      <summary>📦 采集活动（批量任务）</summary>
       <input id="camp-name" placeholder="活动名称，如：Q3 雨天专项">
       <div class="row">
         <select id="camp-path"><option value="">选择路线</option></select>
         <select id="camp-sensor"><option value="">传感器配置</option></select>
       </div>
       <div id="camp-vehicles" class="t-meta" style="margin:4px 0"></div>
-      <button id="btn-create-camp">＋ 创建活动并批量生成任务</button>
+      <button id="btn-create-camp" class="primary">＋ 创建活动并批量生成任务</button>
+      </details>
       <h3>任务列表</h3>
       <div id="task-list"></div>
     </div>
 
     <div id="panel-data" class="panel" style="display:none">
-      <h3>新建数据包</h3>
+      <details class="sec">
+      <summary>＋ 新建数据包</summary>
       <input id="ds-name" placeholder="数据包名称，如：晚高峰路口-batch01">
       <select id="ds-task"><option value="">不关联任务</option></select>
       <div class="row">
         <input id="ds-tags" placeholder="标签，逗号分隔：雨天,路口">
         <button id="btn-create-ds" class="primary">＋ 创建</button>
       </div>
+      </details>
       <h3>数据包检索</h3>
       <div class="row">
         <input id="ds-keyword" placeholder="关键字搜索">
@@ -136,18 +142,21 @@
     <div id="panel-report" class="panel" style="display:none">
       <h3>近 14 天趋势</h3>
       <div id="report-charts"></div>
-      <h3>质检规则配置</h3>
-      <div class="row"><label class="t-meta" style="flex:1">丢帧率阈值 %</label><input id="qc-drop" type="number" step="0.1" style="width:80px"></div>
-      <div class="row"><label class="t-meta" style="flex:1">时间同步阈值 ms</label><input id="qc-sync" type="number" step="0.5" style="width:80px"></div>
-      <div class="row"><label class="t-meta" style="flex:1">及格分数</label><input id="qc-pass" type="number" style="width:80px"></div>
-      <button id="qc-save-rules">保存质检规则</button>
-      <h3>数据保留策略</h3>
+      <details class="sec">
+      <summary>⚙️ 质检规则配置</summary>
+      <div class="form-line"><label>丢帧率阈值 %</label><input id="qc-drop" type="number" step="0.1"></div>
+      <div class="form-line"><label>时间同步阈值 ms</label><input id="qc-sync" type="number" step="0.5"></div>
+      <div class="form-line"><label>及格分数</label><input id="qc-pass" type="number"></div>
+      <button id="qc-save-rules" class="primary">保存质检规则</button>
+      </details>
+      <details class="sec">
+      <summary>🗄 数据保留策略</summary>
+      <div class="form-line"><input id="ret-days" type="number"><label>天未消费自动归档</label></div>
       <div class="row">
-        <input id="ret-days" type="number" style="width:80px">
-        <span class="t-meta" style="align-self:center">天未消费自动归档</span>
-        <button id="ret-save">保存</button>
+        <button id="ret-save" class="primary">保存</button>
         <button id="ret-apply" class="ghost">立即执行</button>
       </div>
+      </details>
       <h3>操作审计日志</h3>
       <div id="audit-list" style="max-height:220px;overflow-y:auto"></div>
     </div>
