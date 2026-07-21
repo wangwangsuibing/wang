@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自动驾驶数据采集平台</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="logo">🚘 自动驾驶数据采集平台</div>
+  <div class="toolbar">
+    <button id="btn-addPoint" class="mode-btn">📍 打点</button>
+    <button id="btn-drawPath" class="mode-btn">🛣️ 绘制路径</button>
+    <button id="btn-drawFence" class="mode-btn">🚧 电子围栏</button>
+    <button id="btn-heatmap" class="mode-btn">🔥 热力图</button>
+    <select id="point-filter" title="按任务筛选点位"><option value="">全部点位</option></select>
+    <button id="btn-stop-replay" style="display:none">⏹ 停止回放</button>
+    <span id="mode-tip" class="tip"></span>
+    <span id="draw-actions" style="display:none;gap:6px">
+      <button id="btn-save-draw">✔ 保存</button>
+      <button id="btn-cancel-draw" class="ghost">✖ 取消</button>
+    </span>
+  </div>
+</header>
+
+<div class="layout">
+  <div id="map"></div>
+
+  <aside>
+    <div class="tabs">
+      <div class="tab active" data-panel="panel-dash">📊 概览</div>
+      <div class="tab" data-panel="panel-tasks">📤 任务</div>
+      <div class="tab" data-panel="panel-vehicles">🚗 车辆</div>
+      <div class="tab" data-panel="panel-alerts">⚠️ 告警<span id="alert-badge" class="badge-n">0</span></div>
+    </div>
+
+    <div id="panel-dash" class="panel">
+      <div class="stat-grid">
+        <div class="stat"><div class="k">采集车辆(采集中/总)</div><div class="v" id="stat-vehicles">-</div></div>
+        <div class="stat"><div class="k">采集点位</div><div class="v" id="stat-points">-</div></div>
+        <div class="stat"><div class="k">采集路线</div><div class="v" id="stat-paths">-</div></div>
+        <div class="stat"><div class="k">任务</div><div class="v" id="stat-tasks">-</div></div>
+        <div class="stat"><div class="k">轨迹点</div><div class="v" id="stat-tracks">-</div></div>
+        <div class="stat"><div class="k">覆盖率</div><div class="v" id="stat-coverage">-</div></div>
+      </div>
+      <h3>数据导出</h3>
+      <div class="row">
+        <button id="btn-export-csv">⬇ 点位 CSV</button>
+        <button id="btn-export-geojson">⬇ GeoJSON</button>
+      </div>
+    </div>
+
+    <div id="panel-tasks" class="panel" style="display:none">
+      <h3>新建任务</h3>
+      <input id="task-name" placeholder="任务名称，如：晚高峰路口采集">
+      <select id="task-vehicle"><option value="">自动分配</option></select>
+      <select id="task-path"><option value="">选择路线</option></select>
+      <select id="task-priority">
+        <option value="low">低优先级</option>
+        <option value="normal" selected>中优先级</option>
+        <option value="high">高优先级</option>
+        <option value="urgent">紧急</option>
+      </select>
+      <button id="btn-create-task" class="primary">＋ 创建任务</button>
+      <h3>任务列表</h3>
+      <div id="task-list"></div>
+    </div>
+
+    <div id="panel-vehicles" class="panel" style="display:none">
+      <h3>车辆状态</h3>
+      <div id="vehicle-list"></div>
+      <p class="hint">点击地图上的 🚗 可查看详情并回放轨迹</p>
+    </div>
+
+    <div id="panel-alerts" class="panel" style="display:none">
+      <h3>告警消息</h3>
+      <div id="alert-list"></div>
+    </div>
+  </aside>
+</div>
+
+<!-- point form modal -->
+<div id="point-form" class="modal">
+  <h3>📍 新增采集点</h3>
+  <input id="pf-name" placeholder="点位名称">
+  <div class="row">
+    <input id="pf-lat" placeholder="纬度" readonly>
+    <input id="pf-lng" placeholder="经度" readonly>
+  </div>
+  <select id="pf-type">
+    <option value="poi">兴趣点</option>
+    <option value="event">事件点</option>
+    <option value="obstacle">障碍物</option>
+    <option value="start">起点</option>
+    <option value="end">终点</option>
+  </select>
+  <select id="pf-task"><option value="">不关联任务</option></select>
+  <div class="row">
+    <select id="pf-weather"><option value="">天气</option><option>晴</option><option>多云</option><option>小雨</option><option>大雨</option><option>雾</option><option>雪</option></select>
+    <select id="pf-lighting"><option value="">光照</option><option>白天</option><option>夜间</option><option>黄昏</option><option>逆光</option></select>
+    <select id="pf-road"><option value="">路况</option><option>城市道路</option><option>高架</option><option>隧道</option><option>路口</option><option>高速</option><option>停车场</option></select>
+  </div>
+  <textarea id="pf-note" placeholder="备注" rows="2"></textarea>
+  <div class="row">
+    <button id="pf-save" class="primary">保存</button>
+    <button id="pf-cancel" class="ghost">取消</button>
+  </div>
+</div>
+
+<!-- attachments modal -->
+<div id="att-modal" class="modal">
+  <h3 id="att-title">📎 附件</h3>
+  <div id="att-list" style="max-height:220px;overflow-y:auto;margin-bottom:8px"></div>
+  <input type="file" id="att-file">
+  <div class="row">
+    <button id="att-upload" class="primary">⬆ 上传</button>
+    <button id="att-close" class="ghost">关闭</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="js/coords.js"></script>
+<script src="js/api.js"></script>
+<script src="js/map.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

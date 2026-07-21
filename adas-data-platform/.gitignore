@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+platform.db
+backend/uploads/
+dist/
+build/
+*.spec
