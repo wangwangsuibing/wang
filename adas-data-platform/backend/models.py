@@ -34,6 +34,11 @@ class TaskIn(BaseModel):
     path_id: Optional[int] = None
     priority: str = "normal"
     note: str = ""
+    driver_id: Optional[int] = None
+    sensor_config_id: Optional[int] = None
+    campaign_id: Optional[int] = None
+    event_rules: List[dict] = []
+    target_km: float = 0
 
 
 class GeofenceIn(BaseModel):
@@ -58,3 +63,53 @@ class DatasetIn(BaseModel):
 
 class TagsUpdate(BaseModel):
     tags: List[str]
+
+
+class DriverIn(BaseModel):
+    name: str
+    phone: str = ""
+    note: str = ""
+
+
+class SensorConfigIn(BaseModel):
+    name: str
+    config: dict = {}
+    note: str = ""
+
+
+class CampaignIn(BaseModel):
+    name: str
+    sensor_config_id: Optional[int] = None
+    event_rules: List[dict] = []
+    note: str = ""
+    vehicle_ids: List[int] = []          # batch-create one task per vehicle
+    path_id: Optional[int] = None
+    priority: str = "normal"
+
+
+class ConsumerIn(BaseModel):
+    consumer: str
+    note: str = ""
+
+
+class UploadInit(BaseModel):
+    orig_name: str
+    size: int
+    chunk_size: int = 2 * 1024 * 1024
+
+
+class QcRules(BaseModel):
+    drop_rate_max: float = 1.0
+    sync_err_max_ms: float = 5.0
+    pass_score: float = 60
+    camera_exposure_check: bool = True
+    lidar_density_check: bool = True
+    gps_loss_check: bool = True
+
+
+class RetentionIn(BaseModel):
+    retention_days: int
+
+
+class PriorityUpdate(BaseModel):
+    priority: str

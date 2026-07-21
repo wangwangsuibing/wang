@@ -21,6 +21,7 @@ const MapMod = (() => {
     geofences: L.layerGroup().addTo(map),
     replay: L.layerGroup().addTo(map),
     draw: L.layerGroup().addTo(map),
+    gaps: L.layerGroup().addTo(map),
   };
   let heatLayer = null;
 

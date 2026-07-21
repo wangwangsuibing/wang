@@ -15,6 +15,7 @@
     <button id="btn-drawPath" class="mode-btn">🛣️ 绘制路径</button>
     <button id="btn-drawFence" class="mode-btn">🚧 电子围栏</button>
     <button id="btn-heatmap" class="mode-btn">🔥 热力图</button>
+    <button id="btn-gaps" class="mode-btn">🕳 覆盖缺口</button>
     <select id="point-filter" title="按任务筛选点位"><option value="">全部点位</option></select>
     <button id="btn-stop-replay" style="display:none">⏹ 停止回放</button>
     <span id="mode-tip" class="tip"></span>
@@ -33,6 +34,7 @@
       <div class="tab active" data-panel="panel-dash">📊 概览</div>
       <div class="tab" data-panel="panel-tasks">📤 任务</div>
       <div class="tab" data-panel="panel-data">💾 数据</div>
+      <div class="tab" data-panel="panel-report">📈 报表</div>
       <div class="tab" data-panel="panel-vehicles">🚗 车辆</div>
       <div class="tab" data-panel="panel-alerts">⚠️ 告警<span id="alert-badge" class="badge-n">0</span></div>
     </div>
@@ -60,13 +62,26 @@
       <input id="task-name" placeholder="任务名称，如：晚高峰路口采集">
       <select id="task-vehicle"><option value="">自动分配</option></select>
       <select id="task-path"><option value="">选择路线</option></select>
+      <div class="row">
+        <select id="task-driver"><option value="">选择采集员</option></select>
+        <select id="task-sensor"><option value="">传感器配置</option></select>
+      </div>
       <select id="task-priority">
         <option value="low">低优先级</option>
         <option value="normal" selected>中优先级</option>
         <option value="high">高优先级</option>
         <option value="urgent">紧急</option>
       </select>
+      <input id="task-event-rules" placeholder="事件触发（可选）：AEB:10:30 = 触发前10s后30s">
       <button id="btn-create-task" class="primary">＋ 创建任务</button>
+      <h3>采集活动（批量任务）</h3>
+      <input id="camp-name" placeholder="活动名称，如：Q3 雨天专项">
+      <div class="row">
+        <select id="camp-path"><option value="">选择路线</option></select>
+        <select id="camp-sensor"><option value="">传感器配置</option></select>
+      </div>
+      <div id="camp-vehicles" class="t-meta" style="margin:4px 0"></div>
+      <button id="btn-create-camp">＋ 创建活动并批量生成任务</button>
       <h3>任务列表</h3>
       <div id="task-list"></div>
     </div>
@@ -84,14 +99,22 @@
         <input id="ds-keyword" placeholder="关键字搜索">
         <select id="ds-status-filter">
           <option value="">全部状态</option>
-          <option value="uploading">上传中</option>
+          <option value="uploading">回传中</option>
           <option value="uploaded">已上传</option>
           <option value="qc_passed">质检通过</option>
           <option value="qc_failed">质检未通过</option>
           <option value="archived">已归档</option>
         </select>
       </div>
-      <select id="ds-tag-filter"><option value="">全部标签</option></select>
+      <div class="row">
+        <select id="ds-tag-filter"><option value="">全部标签</option></select>
+        <select id="ds-event-filter">
+          <option value="">全部事件</option>
+          <option value="manual">手动打标</option>
+          <option value="AEB">AEB 触发</option>
+          <option value="cutin">切入触发</option>
+        </select>
+      </div>
       <div id="ds-list"></div>
     </div>
 
@@ -99,6 +122,34 @@
       <h3>车辆状态</h3>
       <div id="vehicle-list"></div>
       <p class="hint">点击地图上的 🚗 可查看详情并回放轨迹</p>
+      <h3>采集员</h3>
+      <div id="driver-list"></div>
+      <div class="row">
+        <input id="drv-name" placeholder="姓名">
+        <input id="drv-phone" placeholder="电话">
+        <button id="btn-add-driver">＋</button>
+      </div>
+      <h3>存储水位</h3>
+      <div id="storage-box" class="t-meta"></div>
+    </div>
+
+    <div id="panel-report" class="panel" style="display:none">
+      <h3>近 14 天趋势</h3>
+      <div id="report-charts"></div>
+      <h3>质检规则配置</h3>
+      <div class="row"><label class="t-meta" style="flex:1">丢帧率阈值 %</label><input id="qc-drop" type="number" step="0.1" style="width:80px"></div>
+      <div class="row"><label class="t-meta" style="flex:1">时间同步阈值 ms</label><input id="qc-sync" type="number" step="0.5" style="width:80px"></div>
+      <div class="row"><label class="t-meta" style="flex:1">及格分数</label><input id="qc-pass" type="number" style="width:80px"></div>
+      <button id="qc-save-rules">保存质检规则</button>
+      <h3>数据保留策略</h3>
+      <div class="row">
+        <input id="ret-days" type="number" style="width:80px">
+        <span class="t-meta" style="align-self:center">天未消费自动归档</span>
+        <button id="ret-save">保存</button>
+        <button id="ret-apply" class="ghost">立即执行</button>
+      </div>
+      <h3>操作审计日志</h3>
+      <div id="audit-list" style="max-height:220px;overflow-y:auto"></div>
     </div>
 
     <div id="panel-alerts" class="panel" style="display:none">
@@ -152,6 +203,15 @@
   <h3 id="ds-title">💾 数据包</h3>
   <div id="ds-meta" class="t-meta" style="margin-bottom:8px"></div>
   <div class="row">
+    <select id="ds-priority" style="width:110px">
+      <option value="low">低优先级</option>
+      <option value="normal">中优先级</option>
+      <option value="high">高优先级</option>
+    </select>
+    <button id="ds-anonymize">🔒 执行脱敏</button>
+    <span id="ds-anon-state" class="t-meta" style="align-self:center"></span>
+  </div>
+  <div class="row">
     <input id="ds-edit-tags" placeholder="标签，逗号分隔">
     <button id="ds-save-tags">保存标签</button>
   </div>
@@ -174,6 +234,15 @@
     <button id="ds-manifest" class="ghost">📄 导出清单</button>
     <button id="ds-zip" class="ghost">📦 打包下载</button>
     <button id="ds-archive" class="ghost">🗄 归档</button>
+  </div>
+  <h3 style="margin-top:8px">数据血缘（下游消费）</h3>
+  <div id="ds-lineage" style="max-height:100px;overflow-y:auto;margin-bottom:6px"></div>
+  <div class="row">
+    <select id="ds-consumer-type" style="width:110px">
+      <option>标注平台</option><option>训练平台</option><option>仿真平台</option><option>外部交付</option>
+    </select>
+    <input id="ds-consumer-note" placeholder="备注（可选）">
+    <button id="ds-add-consumer">＋ 记录</button>
   </div>
 </div>
 

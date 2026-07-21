@@ -7,6 +7,7 @@
   let drawCoords = [];           // WGS-84 coords being drawn
   let drawLine = null;
   let heatOn = false;
+  let gapsOn = false;
   let replayTimer = null;
   let cachedPaths = [], cachedVehicles = [];
 
@@ -125,13 +126,16 @@
   async function loadPaths() {
     cachedPaths = await API.get('/api/paths');
     layers.paths.clearLayers();
-    const sel = $('task-path'); sel.innerHTML = '<option value="">选择路线</option>';
+    const sels = [['task-path', '选择路线'], ['camp-path', '选择路线']].map(([id, ph]) => {
+      const s = $(id); const v = s.value; s.innerHTML = `<option value="">${ph}</option>`; return [s, v];
+    });
     cachedPaths.forEach(p => {
       const line = L.polyline(p.coords.map(c => ll(c[0], c[1])), { color: p.color, weight: 4, opacity: 0.85 });
       line.bindPopup(`<b>${p.name}</b><br>长度: ${p.length_km} km<br><a href="#" onclick="App.delPath(${p.id});return false;">🗑 删除</a>`);
       line.addTo(layers.paths);
-      sel.insertAdjacentHTML('beforeend', `<option value="${p.id}">${p.name} (${p.length_km}km)</option>`);
+      sels.forEach(([s]) => s.insertAdjacentHTML('beforeend', `<option value="${p.id}">${p.name} (${p.length_km}km)</option>`));
     });
+    sels.forEach(([s, v]) => (s.value = v));
   }
 
   async function loadVehicles() {
@@ -148,6 +152,7 @@
       list.insertAdjacentHTML('beforeend',
         `<div class="v-item"><span class="v-dot ${v.status}"></span><b>${v.name}</b><span class="v-meta">${stNames[v.status] || v.status} · ${v.speed}km/h · 🔋${Math.round(v.battery)}%</span></div>`);
     });
+    renderCampVehicles();
   }
 
   async function loadGeofences() {
@@ -176,18 +181,169 @@
     const stNames = { pending: '待下发', running: '执行中', done: '已完成', cancelled: '已取消' };
     const priNames = { low: '低', normal: '中', high: '高', urgent: '紧急' };
     tasks.forEach(t => {
+      const checklistBtn = t.status === 'pending' && !t.checklist_done
+        ? `<button class="ghost" onclick="App.checklist(${t.id})">📋 出车检查</button>` : '';
       const actions = t.status === 'pending'
-        ? `<button onclick="App.dispatch(${t.id})">下发</button><button class="ghost" onclick="App.cancelTask(${t.id})">取消</button>`
+        ? `${checklistBtn}<button onclick="App.dispatch(${t.id})">下发</button><button class="ghost" onclick="App.cancelTask(${t.id})">取消</button>`
         : t.status === 'running'
         ? `<button class="ghost" onclick="App.cancelTask(${t.id})">终止</button>` : '';
+      const prog = t.status === 'running'
+        ? `<div style="background:#eee;border-radius:3px;height:6px;margin:4px 0"><div style="height:6px;border-radius:3px;width:${t.progress || 0}%;background:#19be6b"></div></div><small>${(t.progress || 0).toFixed(0)}%</small>`
+        : t.status === 'done' ? '<small style="color:#19be6b">100%</small>' : '';
+      const extra = [
+        t.driver_name ? `👤${t.driver_name}` : '',
+        t.sensor_config_name ? `🎛${t.sensor_config_name}` : '',
+        t.campaign_name ? `📦${t.campaign_name}` : '',
+        (t.event_rules && t.event_rules.length) ? `⚡${t.event_rules.map(r => r.trigger).join('/')}` : '',
+        t.checklist_done ? '📋✓' : '',
+      ].filter(Boolean).join(' · ');
       box.insertAdjacentHTML('beforeend', `
         <div class="task-item st-${t.status}">
           <div class="t-head"><b>#${t.id} ${t.name}</b><span class="badge b-${t.status}">${stNames[t.status] || t.status}</span></div>
           <div class="t-meta">优先级: ${priNames[t.priority] || t.priority} · 车辆: ${t.vehicle_name || '未分配'} · 路线: ${t.path_name || '-'}</div>
+          ${extra ? `<div class="t-meta">${extra}</div>` : ''}
+          ${prog}
           <div class="t-actions">${actions}</div>
         </div>`);
     });
   }
+
+  // ---------- drivers / sensor configs / campaigns ----------
+  async function loadDrivers() {
+    const drivers = await API.get('/api/drivers');
+    const stNames = { available: '空闲', on_task: '任务中', off: '休息' };
+    const sel = $('task-driver'); const v = sel.value;
+    sel.innerHTML = '<option value="">选择采集员</option>' +
+      drivers.map(d => `<option value="${d.id}">${d.name}（${stNames[d.status] || d.status}）</option>`).join('');
+    sel.value = v;
+    const box = $('driver-list'); box.innerHTML = '';
+    drivers.forEach(d => {
+      box.insertAdjacentHTML('beforeend',
+        `<div class="v-item"><span class="v-dot ${d.status === 'on_task' ? 'collecting' : 'idle'}"></span><b>${d.name}</b>
+         <span class="v-meta">${stNames[d.status] || d.status} · ${d.phone || '-'} · 完成 ${d.tasks_done} 单 · <a href="#" onclick="App.delDriver(${d.id});return false;">🗑</a></span></div>`);
+    });
+  }
+  $('btn-add-driver').onclick = async () => {
+    const name = $('drv-name').value.trim();
+    if (!name) return toast('请输入姓名', true);
+    await API.post('/api/drivers', { name, phone: $('drv-phone').value.trim() });
+    $('drv-name').value = ''; $('drv-phone').value = '';
+    toast('采集员已添加'); loadDrivers();
+  };
+
+  async function loadSensorConfigs() {
+    const scs = await API.get('/api/sensor_configs');
+    for (const id of ['task-sensor', 'camp-sensor']) {
+      const sel = $(id); const v = sel.value;
+      sel.innerHTML = '<option value="">传感器配置</option>' +
+        scs.map(s => `<option value="${s.id}" title="${JSON.stringify(s.config).replace(/"/g, '')}">${s.name}</option>`).join('');
+      sel.value = v;
+    }
+  }
+
+  function parseEventRules(str) {
+    // "AEB:10:30, cutin:5:20" -> [{trigger, pre_s, post_s}]
+    return str.split(/[,，]/).map(s => s.trim()).filter(Boolean).map(s => {
+      const [trigger, pre, post] = s.split(':');
+      return { trigger, pre_s: +pre || 10, post_s: +post || 30 };
+    });
+  }
+
+  function renderCampVehicles() {
+    $('camp-vehicles').innerHTML = '选择车辆: ' + cachedVehicles.map(v =>
+      `<label style="margin-right:8px"><input type="checkbox" class="camp-v" value="${v.id}">${v.name}</label>`).join('');
+  }
+  $('btn-create-camp').onclick = async () => {
+    const name = $('camp-name').value.trim();
+    if (!name) return toast('请输入活动名称', true);
+    const vids = [...document.querySelectorAll('.camp-v:checked')].map(x => +x.value);
+    if (!vids.length) return toast('请至少选择一辆车', true);
+    try {
+      const r = await API.post('/api/campaigns', {
+        name, vehicle_ids: vids,
+        path_id: $('camp-path').value ? +$('camp-path').value : null,
+        sensor_config_id: $('camp-sensor').value ? +$('camp-sensor').value : null,
+      });
+      $('camp-name').value = '';
+      toast(`活动已创建，批量生成 ${r.task_ids.length} 个任务`);
+      loadTasks();
+    } catch (err) { toast(err.message, true); }
+  };
+
+  // ---------- storage ----------
+  async function loadStorage() {
+    const s = await API.get('/api/storage');
+    const color = s.warning ? '#ed4014' : '#19be6b';
+    $('storage-box').innerHTML =
+      `<div style="background:#eee;border-radius:4px;height:10px;margin:4px 0"><div style="height:10px;border-radius:4px;width:${s.used_percent}%;background:${color}"></div></div>
+       磁盘已用 ${s.used_percent}%（告警线 ${s.warn_percent}%）· 平台数据 ${fmtSize(s.upload_bytes)} · 剩余 ${fmtSize(s.disk_free)}` +
+      (s.warning ? '<br><b style="color:#ed4014">⚠ 存储水位超过告警线，请清理或扩容</b>' : '');
+  }
+
+  // ---------- reports ----------
+  function barChart(title, rows, valueFn, fmtFn) {
+    const max = Math.max(...rows.map(valueFn), 1e-9);
+    return `<div class="t-meta" style="margin-top:6px"><b>${title}</b></div>` +
+      '<div style="display:flex;align-items:flex-end;gap:2px;height:56px">' +
+      rows.map(r => {
+        const v = valueFn(r);
+        const h = v === null ? 0 : Math.max(2, v * 52 / max);
+        return `<div title="${r.date}: ${fmtFn(v)}" style="flex:1;height:${h}px;background:#2d8cf0;border-radius:2px 2px 0 0;opacity:${v === null ? 0.15 : 0.9}"></div>`;
+      }).join('') + '</div>';
+  }
+  async function loadReports() {
+    const rows = await API.get('/api/reports/daily');
+    $('report-charts').innerHTML =
+      barChart('采集里程 (km)', rows, r => r.km, v => v + ' km') +
+      barChart('数据量', rows, r => r.data_bytes, v => fmtSize(v)) +
+      barChart('质检合格率 (%)', rows, r => r.qc_pass_rate, v => v === null ? '无质检' : v + '%') +
+      barChart('完成任务数', rows, r => r.tasks_done, v => v + ' 个');
+    const rules = await API.get('/api/datasets/meta/qc_rules');
+    $('qc-drop').value = rules.drop_rate_max;
+    $('qc-sync').value = rules.sync_err_max_ms;
+    $('qc-pass').value = rules.pass_score;
+    const ret = await API.get('/api/datasets/meta/retention');
+    $('ret-days').value = ret.retention_days;
+    loadAudit();
+  }
+  $('qc-save-rules').onclick = async () => {
+    await API.put('/api/datasets/meta/qc_rules', {
+      drop_rate_max: +$('qc-drop').value, sync_err_max_ms: +$('qc-sync').value,
+      pass_score: +$('qc-pass').value,
+      camera_exposure_check: true, lidar_density_check: true, gps_loss_check: true,
+    });
+    toast('质检规则已保存');
+  };
+  $('ret-save').onclick = async () => {
+    await API.put('/api/datasets/meta/retention', { retention_days: +$('ret-days').value });
+    toast('保留策略已保存');
+  };
+  $('ret-apply').onclick = async () => {
+    const r = await API.post('/api/datasets/meta/retention/apply');
+    toast(r.archived.length ? `已自动归档 ${r.archived.length} 个数据包` : '没有符合条件的数据包');
+  };
+  async function loadAudit() {
+    const logs = await API.get('/api/audit?limit=50');
+    $('audit-list').innerHTML = logs.map(l =>
+      `<div class="v-item"><b>${l.action}</b> <span class="v-meta">${l.target} ${l.detail} · ${l.created_at}</span></div>`).join('') || '<p class="hint">暂无记录</p>';
+  }
+
+  // ---------- coverage gaps ----------
+  $('btn-gaps').onclick = async () => {
+    gapsOn = !gapsOn;
+    $('btn-gaps').classList.toggle('active', gapsOn);
+    layers.gaps.clearLayers();
+    if (!gapsOn) return;
+    const g = await API.get('/api/coverage/gaps');
+    const d = g.cell_deg / 2;
+    g.gaps.forEach(c => {
+      L.rectangle([ll(c.lat - d, c.lng - d), ll(c.lat + d, c.lng + d)],
+        { color: '#ed4014', weight: 1, fillOpacity: 0.25, dashArray: '4 3' })
+        .bindPopup(`覆盖不足网格<br>仅 ${c.points} 个轨迹点，建议补采`)
+        .addTo(layers.gaps);
+    });
+    toast(`发现 ${g.gaps.length} 个覆盖不足网格`);
+  };
 
   async function loadStats() {
     const s = await API.get('/api/stats');
@@ -255,8 +411,9 @@
     while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
     return b.toFixed(i ? 1 : 0) + ' ' + u[i];
   }
-  const dsStatusNames = { uploading: '上传中', uploaded: '已上传', qc_running: '质检中', qc_passed: '质检通过', qc_failed: '质检未通过', archived: '已归档' };
+  const dsStatusNames = { uploading: '回传中', uploaded: '已上传', qc_running: '质检中', qc_passed: '质检通过', qc_failed: '质检未通过', archived: '已归档' };
   const dsStatusColors = { uploading: '#ff9900', uploaded: '#2d8cf0', qc_passed: '#19be6b', qc_failed: '#ed4014', archived: '#999' };
+  const anonNames = { pending: '待脱敏', running: '脱敏中', done: '已脱敏', not_required: '无需脱敏' };
   let dsCurrentId = null;
 
   async function loadDatasets() {
@@ -264,20 +421,30 @@
     if ($('ds-status-filter').value) params.set('status', $('ds-status-filter').value);
     if ($('ds-tag-filter').value) params.set('tag', $('ds-tag-filter').value);
     if ($('ds-keyword').value.trim()) params.set('keyword', $('ds-keyword').value.trim());
-    const list = await API.get('/api/datasets' + (params.toString() ? '?' + params : ''));
+    let list = await API.get('/api/datasets' + (params.toString() ? '?' + params : ''));
+    if ($('ds-event-filter').value) list = list.filter(d => d.event_type === $('ds-event-filter').value);
     const box = $('ds-list');
     box.innerHTML = list.length ? '' : '<p class="hint">暂无数据包</p>';
     list.forEach(d => {
       const tags = d.tags.map(t => `<span class="badge" style="background:#eef4ff;color:#2d8cf0">${t}</span>`).join(' ');
       const qc = d.qc_score != null ? ` · 质检 ${d.qc_score} 分` : '';
+      const ev = d.event_type ? ` · ⚡${d.event_type}` : '';
+      const anon = ` · 🔒${anonNames[d.anonymized] || d.anonymized}`;
+      const upl = d.status === 'uploading'
+        ? `<div style="background:#eee;border-radius:3px;height:6px;margin:4px 0"><div style="height:6px;border-radius:3px;width:${d.upload_progress || 0}%;background:#ff9900"></div></div><small>回传 ${(d.upload_progress || 0).toFixed(0)}%</small>`
+        : '';
+      const recollect = d.status === 'qc_failed'
+        ? `<button onclick="App.recollect(${d.id})">🔁 一键补采</button>` : '';
       box.insertAdjacentHTML('beforeend', `
         <div class="task-item">
           <div class="t-head"><b>#${d.id} ${d.name}</b>
             <span class="badge" style="background:${dsStatusColors[d.status] || '#999'};color:#fff">${dsStatusNames[d.status] || d.status}</span></div>
-          <div class="t-meta">${d.vehicle_name || '手动创建'} · ${d.file_count} 个文件 · ${fmtSize(d.size_bytes)}${qc}</div>
+          <div class="t-meta">${d.vehicle_name || '手动创建'} · ${d.file_count} 个文件 · ${fmtSize(d.size_bytes)}${qc}${ev}${anon}</div>
           <div class="t-meta">${tags}</div>
+          ${upl}
           <div class="t-actions">
             <button onclick="App.openDataset(${d.id})">详情/上传</button>
+            ${recollect}
             <button class="ghost" onclick="App.delDataset(${d.id})">🗑 删除</button>
           </div>
         </div>`);
@@ -296,6 +463,7 @@
   }
   $('ds-status-filter').onchange = loadDatasets;
   $('ds-tag-filter').onchange = loadDatasets;
+  $('ds-event-filter').onchange = loadDatasets;
   let dsKwTimer; $('ds-keyword').oninput = () => { clearTimeout(dsKwTimer); dsKwTimer = setTimeout(loadDatasets, 400); };
 
   $('btn-create-ds').onclick = async () => {
@@ -319,6 +487,13 @@
       ` · ${fmtSize(d.size_bytes)} · 时长 ${d.duration_s || 0}s · ${d.created_at}` +
       (d.task_name ? `<br>任务: #${d.task_id} ${d.task_name} · 车辆: ${d.vehicle_name || '-'}` : '');
     $('ds-edit-tags').value = d.tags.join(',');
+    $('ds-priority').value = d.priority || 'normal';
+    $('ds-anon-state').textContent = anonNames[d.anonymized] || d.anonymized;
+    // lineage
+    const cons = await API.get(`/api/datasets/${dsCurrentId}/consumers`);
+    $('ds-lineage').innerHTML = cons.length
+      ? cons.map(c => `<div class="v-item">→ <b>${c.consumer}</b><span class="v-meta">${c.note || ''} · ${c.created_at}</span></div>`).join('')
+      : '<p class="hint">尚未被下游消费</p>';
     // QC report
     const qcBox = $('ds-qc-report');
     if (d.qc_report) {
@@ -339,6 +514,21 @@
   }
 
   $('ds-close').onclick = () => { $('ds-modal').style.display = 'none'; loadDatasets(); };
+  $('ds-priority').onchange = async () => {
+    await API.put(`/api/datasets/${dsCurrentId}/priority`, { priority: $('ds-priority').value });
+    toast('优先级已更新');
+  };
+  $('ds-anonymize').onclick = async () => {
+    const r = await API.post(`/api/datasets/${dsCurrentId}/anonymize`);
+    toast(r.anonymized === 'done' ? '人脸/车牌脱敏完成' : '无视觉数据，无需脱敏');
+    loadDatasetDetail();
+  };
+  $('ds-add-consumer').onclick = async () => {
+    await API.post(`/api/datasets/${dsCurrentId}/consumers`,
+      { consumer: $('ds-consumer-type').value, note: $('ds-consumer-note').value });
+    $('ds-consumer-note').value = '';
+    toast('血缘记录已添加'); loadDatasetDetail();
+  };
   $('ds-save-tags').onclick = async () => {
     const tags = $('ds-edit-tags').value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
     await API.put(`/api/datasets/${dsCurrentId}/tags`, { tags });
@@ -361,47 +551,69 @@
     toast(restore ? '已恢复' : '已归档'); loadDatasetDetail();
   };
 
-  // multi-file upload with progress bar (XHR for progress events)
-  $('ds-upload').onclick = () => {
-    const files = $('ds-file-input').files;
+  // chunked resumable upload: init → PUT chunks (skip already-received) → complete
+  async function uploadFileChunked(file, onProgress) {
+    const init = await API.post(`/api/datasets/${dsCurrentId}/upload/init`,
+      { orig_name: file.name, size: file.size });
+    const { upload_id, chunk_size, total_chunks } = init;
+    const done = new Set(init.received);
+    for (let n = 0; n < total_chunks; n++) {
+      if (done.has(n)) { onProgress((done.size) / total_chunks, init.resumed); continue; }
+      const blob = file.slice(n * chunk_size, (n + 1) * chunk_size);
+      const r = await fetch(`/api/datasets/upload/${upload_id}/chunk/${n}`, { method: 'PUT', body: blob });
+      if (!r.ok) throw new Error(`分片 ${n} 上传失败（可重试续传）`);
+      done.add(n);
+      onProgress(done.size / total_chunks, init.resumed);
+    }
+    const r = await fetch(`/api/datasets/upload/${upload_id}/complete`, { method: 'POST' });
+    if (!r.ok) throw new Error((await r.json()).detail || '合并失败');
+    return r.json();
+  }
+
+  $('ds-upload').onclick = async () => {
+    const files = [...$('ds-file-input').files];
     if (!files.length) return toast('请先选择文件（可多选）', true);
-    const fd = new FormData();
-    [...files].forEach(f => fd.append('files', f));
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `/api/datasets/${dsCurrentId}/files`);
     $('ds-upload').disabled = true;
     $('ds-upload-progress').style.display = 'block';
-    xhr.upload.onprogress = e => {
-      if (e.lengthComputable) {
-        const pct = Math.round(e.loaded * 100 / e.total);
-        $('ds-progress-bar').style.width = pct + '%';
-        $('ds-progress-text').textContent = `上传中 ${pct}% (${fmtSize(e.loaded)}/${fmtSize(e.total)})`;
+    let okCount = 0, skipCount = 0;
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        const res = await uploadFileChunked(f, (frac, resumed) => {
+          const pct = Math.round(frac * 100);
+          $('ds-progress-bar').style.width = pct + '%';
+          $('ds-progress-text').textContent =
+            `[${i + 1}/${files.length}] ${f.name} ${pct}%${resumed ? '（断点续传）' : ''}`;
+        });
+        res.skipped ? skipCount++ : okCount++;
       }
-    };
-    xhr.onload = () => {
+      toast(`上传完成：${okCount} 个文件` + (skipCount ? `，${skipCount} 个重复已跳过` : ''));
+      $('ds-file-input').value = '';
+      loadDatasetDetail();
+    } catch (err) { toast(err.message + '，再次点击上传可从断点续传', true); }
+    finally {
       $('ds-upload').disabled = false;
       $('ds-upload-progress').style.display = 'none';
       $('ds-progress-bar').style.width = '0';
-      if (xhr.status === 200) {
-        const r = JSON.parse(xhr.responseText);
-        const skipped = r.files.filter(f => f.skipped).length;
-        toast(`上传完成：${r.files.length - skipped} 个文件` + (skipped ? `，${skipped} 个重复已跳过` : ''));
-        $('ds-file-input').value = '';
-        loadDatasetDetail();
-      } else {
-        try { toast(JSON.parse(xhr.responseText).detail, true); } catch { toast('上传失败', true); }
-      }
-    };
-    xhr.onerror = () => {
-      $('ds-upload').disabled = false;
-      $('ds-upload-progress').style.display = 'none';
-      toast('网络错误，上传失败', true);
-    };
-    xhr.send(fd);
+    }
   };
 
   // ---------- replay ----------
   window.App = {
+    async checklist(tid) {
+      const items = await API.get('/api/tasks/checklist_template');
+      if (!confirm('出车检查单确认：\n\n' + items.map((x, i) => `${i + 1}. ${x}`).join('\n') + '\n\n以上各项均已检查通过？')) return;
+      await API.post(`/api/tasks/${tid}/checklist`);
+      toast('检查单已确认，可下发任务'); loadTasks();
+    },
+    async delDriver(id) { await API.del('/api/drivers/' + id); toast('已删除'); loadDrivers(); },
+    async recollect(id) {
+      try {
+        const r = await API.post(`/api/datasets/${id}/recollect`);
+        toast(`已生成补采任务 #${r.task_id}（高优先级）`);
+        loadTasks();
+      } catch (err) { toast(err.message, true); }
+    },
     openDataset(id) {
       dsCurrentId = id;
       $('ds-modal').style.display = 'block';
@@ -462,8 +674,12 @@
         vehicle_id: $('task-vehicle').value ? +$('task-vehicle').value : null,
         path_id: $('task-path').value ? +$('task-path').value : null,
         priority: $('task-priority').value,
+        driver_id: $('task-driver').value ? +$('task-driver').value : null,
+        sensor_config_id: $('task-sensor').value ? +$('task-sensor').value : null,
+        event_rules: parseEventRules($('task-event-rules').value),
       });
       $('task-name').value = '';
+      $('task-event-rules').value = '';
       toast('任务已创建');
       loadTasks();
     } catch (err) { toast(err.message, true); }
@@ -478,13 +694,19 @@
       $(t.dataset.panel).style.display = 'block';
       if (t.dataset.panel === 'panel-alerts') { loadAlerts(); API.post('/api/alerts/read_all'); }
       if (t.dataset.panel === 'panel-data') loadDatasets();
+      if (t.dataset.panel === 'panel-report') loadReports();
+      if (t.dataset.panel === 'panel-vehicles') { loadDrivers(); loadStorage(); }
     };
   });
   $('btn-export-csv').onclick = () => (window.location = '/api/export/points.csv');
   $('btn-export-geojson').onclick = () => (window.location = '/api/export/geojson');
 
   // ---------- refresh loop ----------
-  function refreshAll() { loadPoints(); loadPaths(); loadVehicles(); loadGeofences(); loadTasks(); loadStats(); }
+  function refreshAll() { loadPoints(); loadPaths(); loadVehicles(); loadGeofences(); loadTasks(); loadStats(); loadDrivers(); loadSensorConfigs(); loadStorage(); }
   refreshAll();
-  setInterval(() => { loadVehicles(); loadTasks(); loadStats(); if (heatOn) API.get('/api/heatmap').then(setHeat); }, 4000);
+  setInterval(() => {
+    loadVehicles(); loadTasks(); loadStats();
+    if (heatOn) API.get('/api/heatmap').then(setHeat);
+    if ($('panel-data').style.display !== 'none') loadDatasets();
+  }, 4000);
 })();

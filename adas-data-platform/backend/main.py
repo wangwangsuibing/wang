@@ -11,8 +11,9 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from database import init_db, get_conn, rows_to_dicts
-from models import VehicleIn, PointIn, PathIn, TaskIn, GeofenceIn, StatusUpdate
+from database import init_db, get_conn, rows_to_dicts, get_setting, set_setting, log_audit
+from models import (VehicleIn, PointIn, PathIn, TaskIn, GeofenceIn, StatusUpdate,
+                    DriverIn, SensorConfigIn, CampaignIn)
 from seed import seed_if_empty
 from simulator import simulator
 import datasets as datasets_mod
@@ -149,21 +150,50 @@ def delete_path(pid: int):
 def list_tasks():
     conn = get_conn()
     rows = conn.execute(
-        """SELECT t.*, v.name AS vehicle_name, p.name AS path_name
+        """SELECT t.*, v.name AS vehicle_name, p.name AS path_name,
+                  d.name AS driver_name, sc.name AS sensor_config_name, c.name AS campaign_name
            FROM tasks t LEFT JOIN vehicles v ON t.vehicle_id=v.id
-           LEFT JOIN paths p ON t.path_id=p.id ORDER BY t.id DESC""").fetchall()
+           LEFT JOIN paths p ON t.path_id=p.id
+           LEFT JOIN drivers d ON t.driver_id=d.id
+           LEFT JOIN sensor_configs sc ON t.sensor_config_id=sc.id
+           LEFT JOIN campaigns c ON t.campaign_id=c.id ORDER BY t.id DESC""").fetchall()
     conn.close()
-    return rows_to_dicts(rows)
+    out = rows_to_dicts(rows)
+    for r in out:
+        r["event_rules"] = json.loads(r.get("event_rules") or "[]")
+    return out
 
 
 @app.post("/api/tasks")
 def create_task(t: TaskIn):
     conn = get_conn()
     cur = conn.execute(
-        "INSERT INTO tasks (name, vehicle_id, path_id, priority, note) VALUES (?,?,?,?,?)",
-        (t.name, t.vehicle_id, t.path_id, t.priority, t.note))
+        """INSERT INTO tasks (name, vehicle_id, path_id, priority, note, driver_id,
+           sensor_config_id, campaign_id, event_rules, target_km) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (t.name, t.vehicle_id, t.path_id, t.priority, t.note, t.driver_id,
+         t.sensor_config_id, t.campaign_id, json.dumps(t.event_rules, ensure_ascii=False), t.target_km))
     conn.commit(); conn.close()
+    log_audit("task.create", f"task#{cur.lastrowid}", t.name)
     return {"id": cur.lastrowid}
+
+
+CHECKLIST_ITEMS = ["传感器标定有效期确认", "相机镜头清洁", "激光雷达自检通过", "GNSS 天线连接", "存储剩余空间 ≥ 500GB", "时间同步源正常"]
+
+
+@app.get("/api/tasks/checklist_template")
+def checklist_template():
+    return CHECKLIST_ITEMS
+
+
+@app.post("/api/tasks/{tid}/checklist")
+def confirm_checklist(tid: int):
+    conn = get_conn()
+    if not conn.execute("SELECT 1 FROM tasks WHERE id=?", (tid,)).fetchone():
+        conn.close(); raise HTTPException(404, "任务不存在")
+    conn.execute("UPDATE tasks SET checklist_done=1 WHERE id=?", (tid,))
+    conn.commit(); conn.close()
+    log_audit("task.checklist", f"task#{tid}", "出车检查单确认")
+    return {"ok": True}
 
 
 @app.post("/api/tasks/{tid}/dispatch")
@@ -172,6 +202,8 @@ def dispatch_task(tid: int):
     task = conn.execute("SELECT * FROM tasks WHERE id=?", (tid,)).fetchone()
     if not task:
         conn.close(); raise HTTPException(404, "任务不存在")
+    if not task["checklist_done"]:
+        conn.close(); raise HTTPException(400, "请先完成出车检查单确认")
     if not task["vehicle_id"]:
         # auto-assign an idle vehicle
         v = conn.execute("SELECT id FROM vehicles WHERE status='idle' ORDER BY battery DESC LIMIT 1").fetchone()
@@ -183,18 +215,24 @@ def dispatch_task(tid: int):
     conn.execute("UPDATE vehicles SET status='collecting' WHERE id=?", (vid,))
     conn.execute("INSERT INTO alerts (vehicle_id, level, message) VALUES (?,?,?)",
                  (vid, "info", f"任务 #{tid} 已下发"))
+    if task["driver_id"]:
+        conn.execute("UPDATE drivers SET status='on_task' WHERE id=?", (task["driver_id"],))
     conn.commit(); conn.close()
+    log_audit("task.dispatch", f"task#{tid}")
     return {"ok": True}
 
 
 @app.post("/api/tasks/{tid}/cancel")
 def cancel_task(tid: int):
     conn = get_conn()
-    task = conn.execute("SELECT vehicle_id FROM tasks WHERE id=?", (tid,)).fetchone()
+    task = conn.execute("SELECT vehicle_id, driver_id FROM tasks WHERE id=?", (tid,)).fetchone()
     conn.execute("UPDATE tasks SET status='cancelled' WHERE id=?", (tid,))
     if task and task["vehicle_id"]:
         conn.execute("UPDATE vehicles SET status='idle', speed=0 WHERE id=?", (task["vehicle_id"],))
+    if task and task["driver_id"]:
+        conn.execute("UPDATE drivers SET status='available' WHERE id=?", (task["driver_id"],))
     conn.commit(); conn.close()
+    log_audit("task.cancel", f"task#{tid}")
     return {"ok": True}
 
 
@@ -398,6 +436,165 @@ def export_geojson():
         })
     return JSONResponse({"type": "FeatureCollection", "features": features},
                         headers={"Content-Disposition": "attachment; filename=export.geojson"})
+
+
+# ---------- Drivers (采集员) ----------
+@app.get("/api/drivers")
+def list_drivers():
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT d.*, (SELECT COUNT(*) FROM tasks t WHERE t.driver_id=d.id AND t.status='done') AS tasks_done
+           FROM drivers d ORDER BY d.id""").fetchall()
+    conn.close()
+    return rows_to_dicts(rows)
+
+
+@app.post("/api/drivers")
+def create_driver(d: DriverIn):
+    conn = get_conn()
+    cur = conn.execute("INSERT INTO drivers (name, phone, note) VALUES (?,?,?)", (d.name, d.phone, d.note))
+    conn.commit(); conn.close()
+    log_audit("driver.create", f"driver#{cur.lastrowid}", d.name)
+    return {"id": cur.lastrowid}
+
+
+@app.delete("/api/drivers/{did}")
+def delete_driver(did: int):
+    conn = get_conn()
+    conn.execute("DELETE FROM drivers WHERE id=?", (did,))
+    conn.commit(); conn.close()
+    log_audit("driver.delete", f"driver#{did}")
+    return {"ok": True}
+
+
+# ---------- Sensor configs (传感器配置方案) ----------
+@app.get("/api/sensor_configs")
+def list_sensor_configs():
+    conn = get_conn()
+    rows = conn.execute("SELECT * FROM sensor_configs ORDER BY id").fetchall()
+    conn.close()
+    out = rows_to_dicts(rows)
+    for r in out:
+        r["config"] = json.loads(r["config"] or "{}")
+    return out
+
+
+@app.post("/api/sensor_configs")
+def create_sensor_config(s: SensorConfigIn):
+    conn = get_conn()
+    cur = conn.execute("INSERT INTO sensor_configs (name, config, note) VALUES (?,?,?)",
+                       (s.name, json.dumps(s.config, ensure_ascii=False), s.note))
+    conn.commit(); conn.close()
+    log_audit("sensor_config.create", f"sc#{cur.lastrowid}", s.name)
+    return {"id": cur.lastrowid}
+
+
+@app.delete("/api/sensor_configs/{sid}")
+def delete_sensor_config(sid: int):
+    conn = get_conn()
+    conn.execute("DELETE FROM sensor_configs WHERE id=?", (sid,))
+    conn.commit(); conn.close()
+    return {"ok": True}
+
+
+# ---------- Campaigns (采集活动: 批量任务) ----------
+@app.get("/api/campaigns")
+def list_campaigns():
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT c.*, sc.name AS sensor_config_name,
+                  (SELECT COUNT(*) FROM tasks t WHERE t.campaign_id=c.id) AS task_count,
+                  (SELECT COUNT(*) FROM tasks t WHERE t.campaign_id=c.id AND t.status='done') AS task_done
+           FROM campaigns c LEFT JOIN sensor_configs sc ON c.sensor_config_id=sc.id
+           ORDER BY c.id DESC""").fetchall()
+    conn.close()
+    out = rows_to_dicts(rows)
+    for r in out:
+        r["event_rules"] = json.loads(r["event_rules"] or "[]")
+    return out
+
+
+@app.post("/api/campaigns")
+def create_campaign(c: CampaignIn):
+    conn = get_conn()
+    cur = conn.execute("INSERT INTO campaigns (name, sensor_config_id, event_rules, note) VALUES (?,?,?,?)",
+                       (c.name, c.sensor_config_id, json.dumps(c.event_rules, ensure_ascii=False), c.note))
+    cid = cur.lastrowid
+    created = []
+    for vid in c.vehicle_ids:
+        t = conn.execute(
+            """INSERT INTO tasks (name, vehicle_id, path_id, priority, campaign_id,
+               sensor_config_id, event_rules) VALUES (?,?,?,?,?,?,?)""",
+            (f"{c.name}-车辆{vid}", vid, c.path_id, c.priority, cid,
+             c.sensor_config_id, json.dumps(c.event_rules, ensure_ascii=False)))
+        created.append(t.lastrowid)
+    conn.commit(); conn.close()
+    log_audit("campaign.create", f"campaign#{cid}", f"{c.name}，批量生成 {len(created)} 个任务")
+    return {"id": cid, "task_ids": created}
+
+
+# ---------- Audit log ----------
+@app.get("/api/audit")
+def list_audit(limit: int = 100):
+    conn = get_conn()
+    rows = conn.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    conn.close()
+    return rows_to_dicts(rows)
+
+
+# ---------- Storage watermark ----------
+@app.get("/api/storage")
+def storage_status():
+    import shutil
+    du = shutil.disk_usage(UPLOAD_DIR)
+    upload_bytes = sum(f.stat().st_size for f in __import__("pathlib").Path(UPLOAD_DIR).rglob("*") if f.is_file())
+    warn = get_setting("storage_warn_percent")
+    used_pct = round(du.used * 100.0 / du.total, 1)
+    return {"disk_total": du.total, "disk_used": du.used, "disk_free": du.free,
+            "used_percent": used_pct, "upload_bytes": upload_bytes,
+            "warn_percent": warn, "warning": used_pct >= warn}
+
+
+# ---------- Reports (趋势报表) ----------
+@app.get("/api/reports/daily")
+def daily_report(days: int = 14):
+    conn = get_conn()
+    def series(q):
+        return {r["d"]: r["v"] for r in conn.execute(q, (f"-{days} day",)).fetchall()}
+    km = series("""SELECT DATE(ts) d, COUNT(*)*0.03 v FROM track_points
+                   WHERE DATE(ts) >= DATE('now','localtime', ?) GROUP BY DATE(ts)""")
+    data = series("""SELECT DATE(created_at) d, COALESCE(SUM(size_bytes),0) v FROM datasets
+                     WHERE DATE(created_at) >= DATE('now','localtime', ?) GROUP BY DATE(created_at)""")
+    qc_pass = series("""SELECT DATE(created_at) d, COUNT(*) v FROM datasets
+                        WHERE status='qc_passed' AND DATE(created_at) >= DATE('now','localtime', ?) GROUP BY DATE(created_at)""")
+    qc_total = series("""SELECT DATE(created_at) d, COUNT(*) v FROM datasets
+                         WHERE qc_score IS NOT NULL AND DATE(created_at) >= DATE('now','localtime', ?) GROUP BY DATE(created_at)""")
+    tasks_done = series("""SELECT DATE(finished_at) d, COUNT(*) v FROM tasks
+                           WHERE status='done' AND DATE(finished_at) >= DATE('now','localtime', ?) GROUP BY DATE(finished_at)""")
+    conn.close()
+    from datetime import date, timedelta
+    out = []
+    for i in range(days - 1, -1, -1):
+        d = (date.today() - timedelta(days=i)).isoformat()
+        total = qc_total.get(d, 0)
+        out.append({"date": d, "km": round(km.get(d, 0), 1), "data_bytes": data.get(d, 0),
+                    "qc_pass_rate": round(qc_pass.get(d, 0) * 100.0 / total, 1) if total else None,
+                    "tasks_done": tasks_done.get(d, 0)})
+    return out
+
+
+# ---------- Coverage gaps (覆盖缺口) ----------
+@app.get("/api/coverage/gaps")
+def coverage_gaps(min_points: int = 5):
+    """0.005°网格聚合轨迹点，返回采集不足（<min_points）的网格中心，用于补采提示。"""
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT CAST(lat/0.005 AS INT) glat, CAST(lng/0.005 AS INT) glng, COUNT(*) n
+           FROM track_points GROUP BY glat, glng""").fetchall()
+    conn.close()
+    gaps = [{"lat": (r["glat"] + 0.5) * 0.005, "lng": (r["glng"] + 0.5) * 0.005, "points": r["n"]}
+            for r in rows if r["n"] < min_points]
+    return {"cell_deg": 0.005, "gaps": gaps}
 
 
 # ---------- Frontend ----------

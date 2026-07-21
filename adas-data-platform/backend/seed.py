@@ -69,9 +69,20 @@ def seed_if_empty():
         )
 
     # tasks
-    conn.execute("INSERT INTO tasks (name, vehicle_id, path_id, priority, status, dispatched_at) VALUES ('浦西城区数据采集', 1, 1, 'high', 'running', datetime('now','localtime'))")
-    conn.execute("INSERT INTO tasks (name, vehicle_id, path_id, priority, status, dispatched_at) VALUES ('高架匝道场景采集', 2, 2, 'normal', 'running', datetime('now','localtime'))")
+    conn.execute("INSERT INTO tasks (name, vehicle_id, path_id, priority, status, dispatched_at, driver_id, sensor_config_id, checklist_done) VALUES ('浦西城区数据采集', 1, 1, 'high', 'running', datetime('now','localtime'), 1, 1, 1)")
+    conn.execute("INSERT INTO tasks (name, vehicle_id, path_id, priority, status, dispatched_at, driver_id, sensor_config_id, checklist_done) VALUES ('高架匝道场景采集', 2, 2, 'normal', 'running', datetime('now','localtime'), 2, 2, 1)")
     conn.execute("INSERT INTO tasks (name, path_id, priority, status) VALUES ('夜间隧道场景采集', 3, 'urgent', 'pending')")
+
+    # drivers
+    for name, phone in (("张师傅", "138****1001"), ("李师傅", "139****1002"), ("王师傅", "137****1003")):
+        conn.execute("INSERT INTO drivers (name, phone) VALUES (?,?)", (name, phone))
+    conn.execute("UPDATE drivers SET status='on_task' WHERE id IN (1,2)")
+
+    # sensor configs
+    conn.execute("INSERT INTO sensor_configs (name, config, note) VALUES (?,?,?)",
+                 ("标准6V1L套件", json.dumps({"cameras": 6, "camera_fps": 30, "lidar": 1, "radar": 5, "gnss": "RTK", "raw_video": False}, ensure_ascii=False), "城区量产采集常用"))
+    conn.execute("INSERT INTO sensor_configs (name, config, note) VALUES (?,?,?)",
+                 ("高精采集套件", json.dumps({"cameras": 8, "camera_fps": 30, "lidar": 2, "radar": 5, "gnss": "RTK+PPK", "raw_video": True}, ensure_ascii=False), "RAW 视频，用于真值制作"))
 
     # historical track points for heatmap
     for vid in (1, 2, 3):

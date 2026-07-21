@@ -46,7 +46,7 @@ class Simulator:
     def _tick(self):
         conn = get_conn()
         rows = conn.execute(
-            """SELECT t.id AS task_id, t.vehicle_id, p.coords
+            """SELECT t.id AS task_id, t.vehicle_id, t.driver_id, p.coords
                FROM tasks t JOIN paths p ON t.path_id = p.id
                WHERE t.status = 'running' AND t.vehicle_id IS NOT NULL"""
         ).fetchall()
@@ -57,25 +57,32 @@ class Simulator:
             if t >= 1.0:
                 # task finished
                 conn.execute(
-                    "UPDATE tasks SET status='done', finished_at=datetime('now','localtime') WHERE id=?",
+                    "UPDATE tasks SET status='done', progress=100, finished_at=datetime('now','localtime') WHERE id=?",
                     (r["task_id"],),
                 )
                 conn.execute("UPDATE vehicles SET status='idle', speed=0 WHERE id=?", (vid,))
+                if r["driver_id"]:
+                    conn.execute("UPDATE drivers SET status='available' WHERE id=?", (r["driver_id"],))
                 conn.execute(
                     "INSERT INTO alerts (vehicle_id, level, message) VALUES (?,?,?)",
                     (vid, "info", f"任务 #{r['task_id']} 采集完成"),
                 )
                 # simulate vehicle-side data package upload registration
                 tname = conn.execute("SELECT name FROM tasks WHERE id=?", (r["task_id"],)).fetchone()["name"]
+                event = random.choice(["", "", "manual", "AEB", "cutin"])  # 部分数据包带事件触发类型
                 conn.execute(
-                    """INSERT INTO datasets (name, task_id, vehicle_id, sensors, status, duration_s, note)
-                       VALUES (?,?,?,?, 'uploading', ?, '任务完成后由车端自动创建，等待数据回传')""",
+                    """INSERT INTO datasets (name, task_id, vehicle_id, sensors, status, duration_s,
+                       event_type, priority, upload_progress, note)
+                       VALUES (?,?,?,?, 'uploading', ?, ?, ?, 0, '任务完成后由车端自动创建，回传中')""",
                     (f"{tname}-采集数据包", r["task_id"], vid,
-                     json.dumps(["camera", "lidar", "gnss", "can"]), round(random.uniform(300, 1800), 0)),
+                     json.dumps(["camera", "lidar", "gnss", "can"]),
+                     round(random.uniform(300, 1800), 0), event,
+                     "high" if event else "normal"),
                 )
                 self.progress.pop(vid, None)
                 continue
             self.progress[vid] = t
+            conn.execute("UPDATE tasks SET progress=? WHERE id=?", (round(t * 100, 1), r["task_id"]))
             lat, lng = _interp(coords, t)
             speed = round(random.uniform(20, 60), 1)
             conn.execute(
@@ -93,6 +100,21 @@ class Simulator:
                     "INSERT INTO alerts (vehicle_id, level, message) VALUES (?,?,?)",
                     (vid, "warning", "传感器数据抖动，已自动重试"),
                 )
+        # simulate in-flight vehicle→cloud upload progress (high priority first)
+        ups = conn.execute(
+            """SELECT id, upload_progress FROM datasets WHERE status='uploading'
+               ORDER BY CASE priority WHEN 'high' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END, id LIMIT 2"""
+        ).fetchall()
+        for u in ups:
+            p = min(100.0, (u["upload_progress"] or 0) + random.uniform(4, 12))
+            if p >= 100.0:
+                conn.execute(
+                    """UPDATE datasets SET upload_progress=100, status='uploaded',
+                       uploaded_at=datetime('now','localtime') WHERE id=?""", (u["id"],))
+                conn.execute("INSERT INTO alerts (vehicle_id, level, message) VALUES (?,?,?)",
+                             (None, "info", f"数据包 #{u['id']} 回传完成，等待质检"))
+            else:
+                conn.execute("UPDATE datasets SET upload_progress=? WHERE id=?", (round(p, 1), u["id"]))
         # battery alerts
         low = conn.execute("SELECT id, name, battery FROM vehicles WHERE battery < 20 AND status != 'offline'").fetchall()
         for v in low:
