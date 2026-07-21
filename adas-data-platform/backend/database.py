@@ -81,6 +81,35 @@ CREATE TABLE IF NOT EXISTS attachments (
     created_at TEXT DEFAULT (datetime('now','localtime'))
 );
 
+CREATE TABLE IF NOT EXISTS datasets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    task_id INTEGER,
+    vehicle_id INTEGER,
+    sensors TEXT DEFAULT '[]',           -- JSON ["camera","lidar",...]
+    status TEXT DEFAULT 'uploading',     -- uploading / uploaded / qc_running / qc_passed / qc_failed / archived
+    size_bytes INTEGER DEFAULT 0,
+    duration_s REAL DEFAULT 0,
+    tags TEXT DEFAULT '[]',              -- JSON ["雨天","路口",...]
+    qc_score REAL,                       -- 0-100 quality score
+    qc_report TEXT,                      -- JSON QC report
+    note TEXT DEFAULT '',
+    created_at TEXT DEFAULT (datetime('now','localtime')),
+    uploaded_at TEXT,
+    archived_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS dataset_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dataset_id INTEGER NOT NULL,
+    filename TEXT NOT NULL,              -- stored filename
+    orig_name TEXT NOT NULL,
+    category TEXT DEFAULT 'other',       -- camera / lidar / radar / gnss / can / log / other
+    size INTEGER DEFAULT 0,
+    sha256 TEXT,
+    created_at TEXT DEFAULT (datetime('now','localtime'))
+);
+
 CREATE TABLE IF NOT EXISTS alerts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     vehicle_id INTEGER,

@@ -15,6 +15,7 @@ from database import init_db, get_conn, rows_to_dicts
 from models import VehicleIn, PointIn, PathIn, TaskIn, GeofenceIn, StatusUpdate
 from seed import seed_if_empty
 from simulator import simulator
+import datasets as datasets_mod
 
 if getattr(sys, "frozen", False):  # PyInstaller exe
     FRONTEND = os.path.join(sys._MEIPASS, "frontend")
@@ -23,6 +24,9 @@ else:
     FRONTEND = os.path.join(os.path.dirname(__file__), "..", "frontend")
     UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+DATASET_DIR = os.path.join(UPLOAD_DIR, "datasets")
+os.makedirs(DATASET_DIR, exist_ok=True)
+datasets_mod.DATASET_DIR = DATASET_DIR
 
 
 @asynccontextmanager
@@ -35,6 +39,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="ADAS 数据采集平台", lifespan=lifespan)
+app.include_router(datasets_mod.router)
 
 
 # ---------- Vehicles ----------
@@ -341,6 +346,9 @@ def stats():
         "tasks_done": one("SELECT COUNT(*) FROM tasks WHERE status='done'"),
         "track_points": one("SELECT COUNT(*) FROM track_points"),
         "alerts_unread": one("SELECT COUNT(*) FROM alerts WHERE read=0"),
+        "datasets_total": one("SELECT COUNT(*) FROM datasets"),
+        "datasets_qc_passed": one("SELECT COUNT(*) FROM datasets WHERE status='qc_passed'"),
+        "datasets_bytes": one("SELECT COALESCE(SUM(size_bytes),0) FROM datasets"),
     }
     total = s["tasks_total"]
     s["task_done_rate"] = round(s["tasks_done"] * 100.0 / total, 1) if total else 0

@@ -65,6 +65,14 @@ class Simulator:
                     "INSERT INTO alerts (vehicle_id, level, message) VALUES (?,?,?)",
                     (vid, "info", f"任务 #{r['task_id']} 采集完成"),
                 )
+                # simulate vehicle-side data package upload registration
+                tname = conn.execute("SELECT name FROM tasks WHERE id=?", (r["task_id"],)).fetchone()["name"]
+                conn.execute(
+                    """INSERT INTO datasets (name, task_id, vehicle_id, sensors, status, duration_s, note)
+                       VALUES (?,?,?,?, 'uploading', ?, '任务完成后由车端自动创建，等待数据回传')""",
+                    (f"{tname}-采集数据包", r["task_id"], vid,
+                     json.dumps(["camera", "lidar", "gnss", "can"]), round(random.uniform(300, 1800), 0)),
+                )
                 self.progress.pop(vid, None)
                 continue
             self.progress[vid] = t

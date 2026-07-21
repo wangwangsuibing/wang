@@ -44,3 +44,17 @@ class GeofenceIn(BaseModel):
 
 class StatusUpdate(BaseModel):
     status: str
+
+
+class DatasetIn(BaseModel):
+    name: str
+    task_id: Optional[int] = None
+    vehicle_id: Optional[int] = None
+    sensors: List[str] = []
+    tags: List[str] = []
+    duration_s: float = 0
+    note: str = ""
+
+
+class TagsUpdate(BaseModel):
+    tags: List[str]

@@ -32,6 +32,7 @@
     <div class="tabs">
       <div class="tab active" data-panel="panel-dash">📊 概览</div>
       <div class="tab" data-panel="panel-tasks">📤 任务</div>
+      <div class="tab" data-panel="panel-data">💾 数据</div>
       <div class="tab" data-panel="panel-vehicles">🚗 车辆</div>
       <div class="tab" data-panel="panel-alerts">⚠️ 告警<span id="alert-badge" class="badge-n">0</span></div>
     </div>
@@ -44,6 +45,8 @@
         <div class="stat"><div class="k">任务</div><div class="v" id="stat-tasks">-</div></div>
         <div class="stat"><div class="k">轨迹点</div><div class="v" id="stat-tracks">-</div></div>
         <div class="stat"><div class="k">覆盖率</div><div class="v" id="stat-coverage">-</div></div>
+        <div class="stat"><div class="k">数据包(质检通过/总)</div><div class="v" id="stat-datasets">-</div></div>
+        <div class="stat"><div class="k">数据总量</div><div class="v" id="stat-databytes">-</div></div>
       </div>
       <h3>数据导出</h3>
       <div class="row">
@@ -66,6 +69,30 @@
       <button id="btn-create-task" class="primary">＋ 创建任务</button>
       <h3>任务列表</h3>
       <div id="task-list"></div>
+    </div>
+
+    <div id="panel-data" class="panel" style="display:none">
+      <h3>新建数据包</h3>
+      <input id="ds-name" placeholder="数据包名称，如：晚高峰路口-batch01">
+      <select id="ds-task"><option value="">不关联任务</option></select>
+      <div class="row">
+        <input id="ds-tags" placeholder="标签，逗号分隔：雨天,路口">
+        <button id="btn-create-ds" class="primary">＋ 创建</button>
+      </div>
+      <h3>数据包检索</h3>
+      <div class="row">
+        <input id="ds-keyword" placeholder="关键字搜索">
+        <select id="ds-status-filter">
+          <option value="">全部状态</option>
+          <option value="uploading">上传中</option>
+          <option value="uploaded">已上传</option>
+          <option value="qc_passed">质检通过</option>
+          <option value="qc_failed">质检未通过</option>
+          <option value="archived">已归档</option>
+        </select>
+      </div>
+      <select id="ds-tag-filter"><option value="">全部标签</option></select>
+      <div id="ds-list"></div>
     </div>
 
     <div id="panel-vehicles" class="panel" style="display:none">
@@ -117,6 +144,36 @@
   <div class="row">
     <button id="att-upload" class="primary">⬆ 上传</button>
     <button id="att-close" class="ghost">关闭</button>
+  </div>
+</div>
+
+<!-- dataset detail modal -->
+<div id="ds-modal" class="modal" style="width:520px;max-width:92vw">
+  <h3 id="ds-title">💾 数据包</h3>
+  <div id="ds-meta" class="t-meta" style="margin-bottom:8px"></div>
+  <div class="row">
+    <input id="ds-edit-tags" placeholder="标签，逗号分隔">
+    <button id="ds-save-tags">保存标签</button>
+  </div>
+  <div id="ds-qc-report" style="margin:8px 0"></div>
+  <h3 style="margin-top:8px">文件列表</h3>
+  <div id="ds-files" style="max-height:200px;overflow-y:auto;margin-bottom:8px"></div>
+  <input type="file" id="ds-file-input" multiple>
+  <div id="ds-upload-progress" style="display:none;margin:6px 0">
+    <div style="background:#eee;border-radius:4px;overflow:hidden;height:8px">
+      <div id="ds-progress-bar" style="height:8px;width:0;background:#2d8cf0;transition:width .2s"></div>
+    </div>
+    <small id="ds-progress-text"></small>
+  </div>
+  <div class="row">
+    <button id="ds-upload" class="primary">⬆ 上传文件</button>
+    <button id="ds-run-qc">🔍 运行质检</button>
+    <button id="ds-close" class="ghost">关闭</button>
+  </div>
+  <div class="row" style="margin-top:6px">
+    <button id="ds-manifest" class="ghost">📄 导出清单</button>
+    <button id="ds-zip" class="ghost">📦 打包下载</button>
+    <button id="ds-archive" class="ghost">🗄 归档</button>
   </div>
 </div>
 

@@ -14,6 +14,15 @@ const API = {
     if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
     return r.json();
   },
+  async put(url, body) {
+    const r = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    return r.json();
+  },
   async del(url) {
     const r = await fetch(url, { method: 'DELETE' });
     if (!r.ok) throw new Error(r.statusText);

@@ -197,6 +197,8 @@
     $('stat-tasks').textContent = `${s.tasks_running} 执行中 / ${s.task_done_rate}% 完成率`;
     $('stat-tracks').textContent = s.track_points;
     $('stat-coverage').textContent = `${s.coverage_cells} 网格`;
+    $('stat-datasets').textContent = `${s.datasets_qc_passed}/${s.datasets_total}`;
+    $('stat-databytes').textContent = fmtSize(s.datasets_bytes);
     $('alert-badge').textContent = s.alerts_unread;
     $('alert-badge').style.display = s.alerts_unread > 0 ? 'inline-block' : 'none';
   }
@@ -245,8 +247,171 @@
     finally { $('att-upload').disabled = false; }
   };
 
+  // ---------- datasets ----------
+  function fmtSize(b) {
+    if (!b) return '0 B';
+    const u = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let i = 0;
+    while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+    return b.toFixed(i ? 1 : 0) + ' ' + u[i];
+  }
+  const dsStatusNames = { uploading: '上传中', uploaded: '已上传', qc_running: '质检中', qc_passed: '质检通过', qc_failed: '质检未通过', archived: '已归档' };
+  const dsStatusColors = { uploading: '#ff9900', uploaded: '#2d8cf0', qc_passed: '#19be6b', qc_failed: '#ed4014', archived: '#999' };
+  let dsCurrentId = null;
+
+  async function loadDatasets() {
+    const params = new URLSearchParams();
+    if ($('ds-status-filter').value) params.set('status', $('ds-status-filter').value);
+    if ($('ds-tag-filter').value) params.set('tag', $('ds-tag-filter').value);
+    if ($('ds-keyword').value.trim()) params.set('keyword', $('ds-keyword').value.trim());
+    const list = await API.get('/api/datasets' + (params.toString() ? '?' + params : ''));
+    const box = $('ds-list');
+    box.innerHTML = list.length ? '' : '<p class="hint">暂无数据包</p>';
+    list.forEach(d => {
+      const tags = d.tags.map(t => `<span class="badge" style="background:#eef4ff;color:#2d8cf0">${t}</span>`).join(' ');
+      const qc = d.qc_score != null ? ` · 质检 ${d.qc_score} 分` : '';
+      box.insertAdjacentHTML('beforeend', `
+        <div class="task-item">
+          <div class="t-head"><b>#${d.id} ${d.name}</b>
+            <span class="badge" style="background:${dsStatusColors[d.status] || '#999'};color:#fff">${dsStatusNames[d.status] || d.status}</span></div>
+          <div class="t-meta">${d.vehicle_name || '手动创建'} · ${d.file_count} 个文件 · ${fmtSize(d.size_bytes)}${qc}</div>
+          <div class="t-meta">${tags}</div>
+          <div class="t-actions">
+            <button onclick="App.openDataset(${d.id})">详情/上传</button>
+            <button class="ghost" onclick="App.delDataset(${d.id})">🗑 删除</button>
+          </div>
+        </div>`);
+    });
+    // tag filter options
+    const tags = await API.get('/api/datasets/meta/tags');
+    const sel = $('ds-tag-filter'); const cur = sel.value;
+    sel.innerHTML = '<option value="">全部标签</option>' + tags.map(t => `<option>${t}</option>`).join('');
+    sel.value = cur;
+    // task selector for new datasets
+    const tasks = await API.get('/api/tasks');
+    const tSel = $('ds-task'); const tv = tSel.value;
+    tSel.innerHTML = '<option value="">不关联任务</option>' +
+      tasks.map(t => `<option value="${t.id}">#${t.id} ${t.name}</option>`).join('');
+    tSel.value = tv;
+  }
+  $('ds-status-filter').onchange = loadDatasets;
+  $('ds-tag-filter').onchange = loadDatasets;
+  let dsKwTimer; $('ds-keyword').oninput = () => { clearTimeout(dsKwTimer); dsKwTimer = setTimeout(loadDatasets, 400); };
+
+  $('btn-create-ds').onclick = async () => {
+    const name = $('ds-name').value.trim();
+    if (!name) return toast('请输入数据包名称', true);
+    const tags = $('ds-tags').value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+    try {
+      const r = await API.post('/api/datasets', { name, tags, task_id: $('ds-task').value ? +$('ds-task').value : null });
+      $('ds-name').value = ''; $('ds-tags').value = '';
+      toast('数据包已创建，请上传文件');
+      await loadDatasets();
+      App.openDataset(r.id);
+    } catch (err) { toast(err.message, true); }
+  };
+
+  async function loadDatasetDetail() {
+    const d = await API.get('/api/datasets/' + dsCurrentId);
+    $('ds-title').textContent = `💾 #${d.id} ${d.name}`;
+    $('ds-meta').innerHTML =
+      `状态: <b style="color:${dsStatusColors[d.status] || '#999'}">${dsStatusNames[d.status] || d.status}</b>` +
+      ` · ${fmtSize(d.size_bytes)} · 时长 ${d.duration_s || 0}s · ${d.created_at}` +
+      (d.task_name ? `<br>任务: #${d.task_id} ${d.task_name} · 车辆: ${d.vehicle_name || '-'}` : '');
+    $('ds-edit-tags').value = d.tags.join(',');
+    // QC report
+    const qcBox = $('ds-qc-report');
+    if (d.qc_report) {
+      qcBox.innerHTML = `<b>质检报告 · ${d.qc_report.score} 分</b>` + d.qc_report.checks.map(c =>
+        `<div class="t-meta">${c.passed ? '✅' : '❌'} ${c.item} — ${c.detail}</div>`).join('');
+    } else qcBox.innerHTML = '<span class="hint">尚未质检</span>';
+    // files
+    const catNames = { camera: '📷 相机', lidar: '🔦 激光雷达', radar: '📡 毫米波', gnss: '🛰 定位', can: '🚌 总线', log: '📜 日志', other: '📄 其他' };
+    const fb = $('ds-files');
+    fb.innerHTML = d.files.length ? '' : '<p class="hint">暂无文件，请上传采集数据</p>';
+    d.files.forEach(f => {
+      fb.insertAdjacentHTML('beforeend',
+        `<div class="v-item">${catNames[f.category] || f.category} <a href="/api/datasets/files/${f.id}/download">${f.orig_name}</a>
+         <span class="v-meta">${fmtSize(f.size)} · <span title="${f.sha256}">SHA✓</span> · <a href="#" onclick="App.delDsFile(${f.id});return false;">🗑</a></span></div>`);
+    });
+    $('ds-archive').textContent = d.status === 'archived' ? '♻ 恢复' : '🗄 归档';
+    $('ds-archive').dataset.archived = d.status === 'archived' ? '1' : '';
+  }
+
+  $('ds-close').onclick = () => { $('ds-modal').style.display = 'none'; loadDatasets(); };
+  $('ds-save-tags').onclick = async () => {
+    const tags = $('ds-edit-tags').value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+    await API.put(`/api/datasets/${dsCurrentId}/tags`, { tags });
+    toast('标签已保存'); loadDatasetDetail();
+  };
+  $('ds-run-qc').onclick = async () => {
+    $('ds-run-qc').disabled = true;
+    try {
+      const r = await API.post(`/api/datasets/${dsCurrentId}/qc`);
+      toast(`质检完成：${r.score} 分`);
+      loadDatasetDetail();
+    } catch (err) { toast(err.message, true); }
+    finally { $('ds-run-qc').disabled = false; }
+  };
+  $('ds-manifest').onclick = () => (window.location = `/api/datasets/${dsCurrentId}/manifest`);
+  $('ds-zip').onclick = () => (window.location = `/api/datasets/${dsCurrentId}/download.zip`);
+  $('ds-archive').onclick = async () => {
+    const restore = $('ds-archive').dataset.archived === '1';
+    await API.post(`/api/datasets/${dsCurrentId}/${restore ? 'restore' : 'archive'}`);
+    toast(restore ? '已恢复' : '已归档'); loadDatasetDetail();
+  };
+
+  // multi-file upload with progress bar (XHR for progress events)
+  $('ds-upload').onclick = () => {
+    const files = $('ds-file-input').files;
+    if (!files.length) return toast('请先选择文件（可多选）', true);
+    const fd = new FormData();
+    [...files].forEach(f => fd.append('files', f));
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/api/datasets/${dsCurrentId}/files`);
+    $('ds-upload').disabled = true;
+    $('ds-upload-progress').style.display = 'block';
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const pct = Math.round(e.loaded * 100 / e.total);
+        $('ds-progress-bar').style.width = pct + '%';
+        $('ds-progress-text').textContent = `上传中 ${pct}% (${fmtSize(e.loaded)}/${fmtSize(e.total)})`;
+      }
+    };
+    xhr.onload = () => {
+      $('ds-upload').disabled = false;
+      $('ds-upload-progress').style.display = 'none';
+      $('ds-progress-bar').style.width = '0';
+      if (xhr.status === 200) {
+        const r = JSON.parse(xhr.responseText);
+        const skipped = r.files.filter(f => f.skipped).length;
+        toast(`上传完成：${r.files.length - skipped} 个文件` + (skipped ? `，${skipped} 个重复已跳过` : ''));
+        $('ds-file-input').value = '';
+        loadDatasetDetail();
+      } else {
+        try { toast(JSON.parse(xhr.responseText).detail, true); } catch { toast('上传失败', true); }
+      }
+    };
+    xhr.onerror = () => {
+      $('ds-upload').disabled = false;
+      $('ds-upload-progress').style.display = 'none';
+      toast('网络错误，上传失败', true);
+    };
+    xhr.send(fd);
+  };
+
   // ---------- replay ----------
   window.App = {
+    openDataset(id) {
+      dsCurrentId = id;
+      $('ds-modal').style.display = 'block';
+      loadDatasetDetail();
+    },
+    async delDataset(id) {
+      if (!confirm('删除数据包及其全部文件？')) return;
+      await API.del('/api/datasets/' + id); toast('数据包已删除'); loadDatasets();
+    },
+    async delDsFile(id) { await API.del('/api/datasets/files/' + id); toast('文件已删除'); loadDatasetDetail(); },
     attachments(pid, name) {
       attPointId = pid;
       map.closePopup();
@@ -312,6 +477,7 @@
       t.classList.add('active');
       $(t.dataset.panel).style.display = 'block';
       if (t.dataset.panel === 'panel-alerts') { loadAlerts(); API.post('/api/alerts/read_all'); }
+      if (t.dataset.panel === 'panel-data') loadDatasets();
     };
   });
   $('btn-export-csv').onclick = () => (window.location = '/api/export/points.csv');
