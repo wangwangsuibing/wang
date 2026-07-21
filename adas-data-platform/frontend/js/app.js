@@ -142,15 +142,18 @@
     cachedVehicles = await API.get('/api/vehicles');
     layers.vehicles.clearLayers();
     const sel = $('task-vehicle'); sel.innerHTML = '<option value="">自动分配</option>';
-    const list = $('vehicle-list'); list.innerHTML = '';
     const stNames = { idle: '空闲', collecting: '采集中', offline: '离线' };
+    const rowHtml = v =>
+      `<div class="v-item"><span class="v-dot ${v.status}"></span><b>${v.name}</b><span class="v-meta">${stNames[v.status] || v.status} · ${v.speed}km/h · 🔋${Math.round(v.battery)}%</span></div>`;
+    const list = $('vehicle-list'); list.innerHTML = '';
+    const live = $('live-vehicle-list'); live.innerHTML = '';
     cachedVehicles.forEach(v => {
       const m = L.marker(ll(v.lat, v.lng), { icon: carIcon(v.status) });
       m.bindPopup(`<b>${v.name}</b> ${v.plate || ''}<br>状态: ${stNames[v.status] || v.status}<br>速度: ${v.speed} km/h · 电量: ${Math.round(v.battery)}%<br><a href="#" onclick="App.replay(${v.id});return false;">▶ 轨迹回放</a>`);
       m.addTo(layers.vehicles);
       sel.insertAdjacentHTML('beforeend', `<option value="${v.id}">${v.name}</option>`);
-      list.insertAdjacentHTML('beforeend',
-        `<div class="v-item"><span class="v-dot ${v.status}"></span><b>${v.name}</b><span class="v-meta">${stNames[v.status] || v.status} · ${v.speed}km/h · 🔋${Math.round(v.battery)}%</span></div>`);
+      list.insertAdjacentHTML('beforeend', rowHtml(v));
+      live.insertAdjacentHTML('beforeend', rowHtml(v));
     });
     renderCampVehicles();
   }
@@ -177,10 +180,13 @@
       fSel.insertAdjacentHTML('beforeend', `<option value="${t.id}">#${t.id} ${t.name}</option>`);
     });
     pfSel.value = pfV; fSel.value = fV;
-    const box = $('task-list'); box.innerHTML = '';
     const stNames = { pending: '待下发', running: '执行中', done: '已完成', cancelled: '已取消' };
     const priNames = { low: '低', normal: '中', high: '高', urgent: '紧急' };
-    tasks.forEach(t => {
+    const flt = $('task-status-filter').value;
+    const rows = flt ? tasks.filter(t => t.status === flt) : tasks;
+    const tb = $('task-tbody'); tb.innerHTML = '';
+    $('task-empty').style.display = rows.length ? 'none' : 'block';
+    rows.forEach(t => {
       const checklistBtn = t.status === 'pending' && !t.checklist_done
         ? `<button class="ghost" onclick="App.checklist(${t.id})">📋 出车检查</button>` : '';
       const actions = t.status === 'pending'
@@ -188,25 +194,29 @@
         : t.status === 'running'
         ? `<button class="ghost" onclick="App.cancelTask(${t.id})">终止</button>` : '';
       const prog = t.status === 'running'
-        ? `<div style="background:#eee;border-radius:3px;height:6px;margin:4px 0"><div style="height:6px;border-radius:3px;width:${t.progress || 0}%;background:#19be6b"></div></div><small>${(t.progress || 0).toFixed(0)}%</small>`
-        : t.status === 'done' ? '<small style="color:#19be6b">100%</small>' : '';
+        ? `<div class="prog"><div class="prog-in" style="width:${t.progress || 0}%"></div></div><small>${(t.progress || 0).toFixed(0)}%</small>`
+        : t.status === 'done' ? '<small style="color:#52c41a">100%</small>' : '-';
       const extra = [
-        t.driver_name ? `👤${t.driver_name}` : '',
-        t.sensor_config_name ? `🎛${t.sensor_config_name}` : '',
         t.campaign_name ? `📦${t.campaign_name}` : '',
         (t.event_rules && t.event_rules.length) ? `⚡${t.event_rules.map(r => r.trigger).join('/')}` : '',
         t.checklist_done ? '📋✓' : '',
-      ].filter(Boolean).join(' · ');
-      box.insertAdjacentHTML('beforeend', `
-        <div class="task-item st-${t.status}">
-          <div class="t-head"><b>#${t.id} ${t.name}</b><span class="badge b-${t.status}">${stNames[t.status] || t.status}</span></div>
-          <div class="t-meta">优先级: ${priNames[t.priority] || t.priority} · 车辆: ${t.vehicle_name || '未分配'} · 路线: ${t.path_name || '-'}</div>
-          ${extra ? `<div class="t-meta">${extra}</div>` : ''}
-          ${prog}
-          <div class="t-actions">${actions}</div>
-        </div>`);
+      ].filter(Boolean).join(' ');
+      tb.insertAdjacentHTML('beforeend', `
+        <tr>
+          <td>#${t.id}</td>
+          <td><b>${t.name}</b></td>
+          <td><span class="badge b-${t.status}">${stNames[t.status] || t.status}</span></td>
+          <td>${prog}</td>
+          <td>${priNames[t.priority] || t.priority}</td>
+          <td>${t.vehicle_name || '未分配'}</td>
+          <td>${t.driver_name || '-'}</td>
+          <td>${t.path_name || '-'}</td>
+          <td class="t-meta">${extra || '-'}</td>
+          <td class="op">${actions}</td>
+        </tr>`);
     });
   }
+  $('task-status-filter').onchange = loadTasks;
 
   // ---------- drivers / sensor configs / campaigns ----------
   async function loadDrivers() {
@@ -228,7 +238,7 @@
     if (!name) return toast('请输入姓名', true);
     await API.post('/api/drivers', { name, phone: $('drv-phone').value.trim() });
     $('drv-name').value = ''; $('drv-phone').value = '';
-    toast('采集员已添加'); loadDrivers();
+    toast('采集员已添加'); closeDrawer(); loadDrivers();
   };
 
   async function loadSensorConfigs() {
@@ -266,6 +276,7 @@
       });
       $('camp-name').value = '';
       toast(`活动已创建，批量生成 ${r.task_ids.length} 个任务`);
+      closeDrawer();
       loadTasks();
     } catch (err) { toast(err.message, true); }
   };
@@ -283,21 +294,30 @@
   // ---------- reports ----------
   function barChart(title, rows, valueFn, fmtFn) {
     const max = Math.max(...rows.map(valueFn), 1e-9);
-    return `<div class="t-meta" style="margin-top:6px"><b>${title}</b></div>` +
-      '<div style="display:flex;align-items:flex-end;gap:2px;height:56px">' +
+    return `<div><div class="t-meta" style="margin-bottom:4px"><b>${title}</b></div>` +
+      '<div style="display:flex;align-items:flex-end;gap:2px;height:64px">' +
       rows.map(r => {
         const v = valueFn(r);
-        const h = v === null ? 0 : Math.max(2, v * 52 / max);
-        return `<div title="${r.date}: ${fmtFn(v)}" style="flex:1;height:${h}px;background:#2d8cf0;border-radius:2px 2px 0 0;opacity:${v === null ? 0.15 : 0.9}"></div>`;
-      }).join('') + '</div>';
+        const h = v === null ? 0 : Math.max(2, v * 60 / max);
+        return `<div title="${r.date}: ${fmtFn(v)}" style="flex:1;height:${h}px;background:#1677ff;border-radius:2px 2px 0 0;opacity:${v === null ? 0.15 : 0.85}"></div>`;
+      }).join('') + '</div></div>';
   }
-  async function loadReports() {
-    const rows = await API.get('/api/reports/daily');
-    $('report-charts').innerHTML =
-      barChart('采集里程 (km)', rows, r => r.km, v => v + ' km') +
+  function chartsHtml(rows) {
+    return barChart('采集里程 (km)', rows, r => r.km, v => v + ' km') +
       barChart('数据量', rows, r => r.data_bytes, v => fmtSize(v)) +
       barChart('质检合格率 (%)', rows, r => r.qc_pass_rate, v => v === null ? '无质检' : v + '%') +
       barChart('完成任务数', rows, r => r.tasks_done, v => v + ' 个');
+  }
+  async function loadDashCharts() {
+    const rows = await API.get('/api/reports/daily');
+    $('dash-charts').innerHTML = chartsHtml(rows);
+    const alerts = await API.get('/api/alerts');
+    $('dash-alerts').innerHTML = alerts.slice(0, 5).map(a =>
+      `<div class="alert-item lv-${a.level}${a.read ? ' read' : ''}"><b>${a.vehicle_name || '系统'}</b> ${a.message} <small>${a.created_at}</small></div>`).join('') || '<p class="hint">暂无告警</p>';
+  }
+  async function loadReports() {
+    const rows = await API.get('/api/reports/daily');
+    $('report-charts').innerHTML = chartsHtml(rows);
     const rules = await API.get('/api/datasets/meta/qc_rules');
     $('qc-drop').value = rules.drop_rate_max;
     $('qc-sync').value = rules.sync_err_max_ms;
@@ -348,11 +368,14 @@
   async function loadStats() {
     const s = await API.get('/api/stats');
     $('stat-vehicles').textContent = `${s.vehicles_collecting}/${s.vehicles_total}`;
+    $('stat-vehicles2').textContent = `${s.vehicles_collecting}/${s.vehicles_total}`;
+    $('stat-tasks-mini').textContent = s.tasks_running;
+    $('stat-tracks-mini').textContent = s.track_points;
     $('stat-points').textContent = s.points_total;
     $('stat-paths').textContent = `${s.paths_total} 条 / ${s.paths_km.toFixed(1)} km`;
-    $('stat-tasks').textContent = `${s.tasks_running} 执行中 / ${s.task_done_rate}% 完成率`;
+    $('stat-tasks').textContent = `${s.tasks_running} 执行中 / ${s.task_done_rate}%`;
     $('stat-tracks').textContent = s.track_points;
-    $('stat-coverage').textContent = `${s.coverage_cells} 网格`;
+    $('stat-coverage').textContent = s.coverage_cells;
     $('stat-datasets').textContent = `${s.datasets_qc_passed}/${s.datasets_total}`;
     $('stat-databytes').textContent = fmtSize(s.datasets_bytes);
     $('alert-badge').textContent = s.alerts_unread;
@@ -423,31 +446,34 @@
     if ($('ds-keyword').value.trim()) params.set('keyword', $('ds-keyword').value.trim());
     let list = await API.get('/api/datasets' + (params.toString() ? '?' + params : ''));
     if ($('ds-event-filter').value) list = list.filter(d => d.event_type === $('ds-event-filter').value);
-    const box = $('ds-list');
-    box.innerHTML = list.length ? '' : '<p class="hint">暂无数据包</p>';
+    const tb = $('ds-tbody'); tb.innerHTML = '';
+    $('ds-empty').style.display = list.length ? 'none' : 'block';
     list.forEach(d => {
-      const tags = d.tags.map(t => `<span class="badge" style="background:#eef4ff;color:#2d8cf0">${t}</span>`).join(' ');
-      const qc = d.qc_score != null ? ` · 质检 ${d.qc_score} 分` : '';
-      const ev = d.event_type ? ` · ⚡${d.event_type}` : '';
-      const anon = ` · 🔒${anonNames[d.anonymized] || d.anonymized}`;
-      const upl = d.status === 'uploading'
-        ? `<div style="background:#eee;border-radius:3px;height:6px;margin:4px 0"><div style="height:6px;border-radius:3px;width:${d.upload_progress || 0}%;background:#ff9900"></div></div><small>回传 ${(d.upload_progress || 0).toFixed(0)}%</small>`
-        : '';
+      const tags = d.tags.map(t => `<span class="tag">${t}</span>`).join('');
+      const qc = d.qc_score != null ? `${d.qc_score} 分` : '-';
+      const ev = d.event_type ? ` ⚡${d.event_type}` : '';
+      const anon = anonNames[d.anonymized] || d.anonymized;
+      const st = d.status === 'uploading'
+        ? `<div class="prog"><div class="prog-in" style="width:${d.upload_progress || 0}%;background:#faad14"></div></div><small>回传 ${(d.upload_progress || 0).toFixed(0)}%</small>`
+        : `<span class="badge" style="background:${dsStatusColors[d.status] || '#999'}">${dsStatusNames[d.status] || d.status}</span>`;
       const recollect = d.status === 'qc_failed'
-        ? `<button onclick="App.recollect(${d.id})">🔁 一键补采</button>` : '';
-      box.insertAdjacentHTML('beforeend', `
-        <div class="task-item">
-          <div class="t-head"><b>#${d.id} ${d.name}</b>
-            <span class="badge" style="background:${dsStatusColors[d.status] || '#999'};color:#fff">${dsStatusNames[d.status] || d.status}</span></div>
-          <div class="t-meta">${d.vehicle_name || '手动创建'} · ${d.file_count} 个文件 · ${fmtSize(d.size_bytes)}${qc}${ev}${anon}</div>
-          <div class="t-meta">${tags}</div>
-          ${upl}
-          <div class="t-actions">
-            <button onclick="App.openDataset(${d.id})">详情/上传</button>
+        ? `<button onclick="App.recollect(${d.id})">🔁 补采</button>` : '';
+      tb.insertAdjacentHTML('beforeend', `
+        <tr>
+          <td>#${d.id}</td>
+          <td><a href="#" onclick="App.openDataset(${d.id});return false;"><b>${d.name}</b></a><span class="t-meta">${ev}</span></td>
+          <td>${st}</td>
+          <td>${d.vehicle_name || '手动创建'}</td>
+          <td>${d.file_count}</td>
+          <td>${fmtSize(d.size_bytes)}</td>
+          <td>${qc}<div class="t-meta">🔒${anon}</div></td>
+          <td>${tags || '-'}</td>
+          <td class="op">
+            <button onclick="App.openDataset(${d.id})">详情</button>
             ${recollect}
-            <button class="ghost" onclick="App.delDataset(${d.id})">🗑 删除</button>
-          </div>
-        </div>`);
+            <button class="ghost" onclick="App.delDataset(${d.id})">删除</button>
+          </td>
+        </tr>`);
     });
     // tag filter options
     const tags = await API.get('/api/datasets/meta/tags');
@@ -474,6 +500,7 @@
       const r = await API.post('/api/datasets', { name, tags, task_id: $('ds-task').value ? +$('ds-task').value : null });
       $('ds-name').value = ''; $('ds-tags').value = '';
       toast('数据包已创建，请上传文件');
+      closeDrawer();
       await loadDatasets();
       App.openDataset(r.id);
     } catch (err) { toast(err.message, true); }
@@ -513,7 +540,7 @@
     $('ds-archive').dataset.archived = d.status === 'archived' ? '1' : '';
   }
 
-  $('ds-close').onclick = () => { $('ds-modal').style.display = 'none'; loadDatasets(); };
+  $('ds-close').onclick = null; // handled by drawer-close class
   $('ds-priority').onchange = async () => {
     await API.put(`/api/datasets/${dsCurrentId}/priority`, { priority: $('ds-priority').value });
     toast('优先级已更新');
@@ -616,7 +643,7 @@
     },
     openDataset(id) {
       dsCurrentId = id;
-      $('ds-modal').style.display = 'block';
+      openDrawer('drawer-ds');
       loadDatasetDetail();
     },
     async delDataset(id) {
@@ -681,23 +708,65 @@
       $('task-name').value = '';
       $('task-event-rules').value = '';
       toast('任务已创建');
+      closeDrawer();
       loadTasks();
     } catch (err) { toast(err.message, true); }
   };
 
-  // ---------- panels / export ----------
-  document.querySelectorAll('.tab').forEach(t => {
+  // ---------- navigation / drawers / export ----------
+  let currentPage = 'page-map';
+  function switchPage(pid) {
+    currentPage = pid;
+    document.querySelectorAll('.nav-item').forEach(x => x.classList.toggle('active', x.dataset.page === pid));
+    document.querySelectorAll('.page').forEach(x => x.classList.toggle('active', x.id === pid));
+    if (pid === 'page-map') setTimeout(() => map.invalidateSize(), 60);
+    if (pid === 'page-alerts') { loadAlerts(); API.post('/api/alerts/read_all'); }
+    if (pid === 'page-data') loadDatasets();
+    if (pid === 'page-report') loadReports();
+    if (pid === 'page-dash') { loadStats(); loadDashCharts(); }
+    if (pid === 'page-vehicles') { loadDrivers(); loadStorage(); }
+  }
+  document.querySelectorAll('.nav-item').forEach(n => (n.onclick = () => switchPage(n.dataset.page)));
+  $('nav-toggle').onclick = () => $('sidenav').classList.toggle('collapsed');
+
+  // map floating panel collapse
+  $('map-panel-toggle').onclick = () => { $('map-panel').classList.add('hidden'); $('map-panel-open').style.display = 'block'; };
+  $('map-panel-open').onclick = () => { $('map-panel').classList.remove('hidden'); $('map-panel-open').style.display = 'none'; };
+
+  // drawer infrastructure
+  let activeDrawer = null;
+  function openDrawer(id) {
+    closeDrawer();
+    activeDrawer = $(id);
+    $('drawer-mask').classList.add('show');
+    activeDrawer.classList.add('show');
+  }
+  function closeDrawer() {
+    if (!activeDrawer) return;
+    activeDrawer.classList.remove('show');
+    $('drawer-mask').classList.remove('show');
+    if (activeDrawer.id === 'drawer-ds') loadDatasets();
+    activeDrawer = null;
+  }
+  $('drawer-mask').onclick = closeDrawer;
+  document.querySelectorAll('.drawer-close').forEach(b => (b.onclick = closeDrawer));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+  $('open-task-drawer').onclick = () => openDrawer('drawer-task');
+  $('open-camp-drawer').onclick = () => openDrawer('drawer-camp');
+  $('open-ds-drawer').onclick = () => openDrawer('drawer-newds');
+  $('open-driver-drawer').onclick = () => openDrawer('drawer-driver');
+
+  // dataset detail drawer tabs
+  document.querySelectorAll('.dtab').forEach(t => {
     t.onclick = () => {
-      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(x => (x.style.display = 'none'));
+      document.querySelectorAll('.dtab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.dt-pane').forEach(x => x.classList.remove('active'));
       t.classList.add('active');
-      $(t.dataset.panel).style.display = 'block';
-      if (t.dataset.panel === 'panel-alerts') { loadAlerts(); API.post('/api/alerts/read_all'); }
-      if (t.dataset.panel === 'panel-data') loadDatasets();
-      if (t.dataset.panel === 'panel-report') loadReports();
-      if (t.dataset.panel === 'panel-vehicles') { loadDrivers(); loadStorage(); }
+      $(t.dataset.dt).classList.add('active');
     };
   });
+
   $('btn-export-csv').onclick = () => (window.location = '/api/export/points.csv');
   $('btn-export-geojson').onclick = () => (window.location = '/api/export/geojson');
 
@@ -707,6 +776,6 @@
   setInterval(() => {
     loadVehicles(); loadTasks(); loadStats();
     if (heatOn) API.get('/api/heatmap').then(setHeat);
-    if ($('panel-data').style.display !== 'none') loadDatasets();
+    if (currentPage === 'page-data') loadDatasets();
   }, 4000);
 })();

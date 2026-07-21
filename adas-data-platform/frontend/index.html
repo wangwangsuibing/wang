@@ -9,11 +9,13 @@
 </head>
 <body>
 <header>
+  <button id="nav-toggle" class="icon-btn" title="折叠导航">☰</button>
   <div class="logo">🚘 自动驾驶数据采集平台</div>
-  <div class="toolbar">
+  <div class="toolbar" id="map-toolbar">
     <button id="btn-addPoint" class="mode-btn">📍 打点</button>
-    <button id="btn-drawPath" class="mode-btn">🛣️ 绘制路径</button>
+    <button id="btn-drawPath" class="mode-btn">🛣 绘制路径</button>
     <button id="btn-drawFence" class="mode-btn">🚧 电子围栏</button>
+    <span class="divider"></span>
     <button id="btn-heatmap" class="mode-btn">🔥 热力图</button>
     <button id="btn-gaps" class="mode-btn">🕳 覆盖缺口</button>
     <select id="point-filter" title="按任务筛选点位"><option value="">全部点位</option></select>
@@ -27,82 +29,98 @@
 </header>
 
 <div class="layout">
-  <div id="map"></div>
+  <nav id="sidenav">
+    <div class="nav-item active" data-page="page-map">🗺<span class="nav-label">实时监控</span></div>
+    <div class="nav-item" data-page="page-dash">📊<span class="nav-label">概览仪表盘</span></div>
+    <div class="nav-item" data-page="page-tasks">📤<span class="nav-label">任务管理</span></div>
+    <div class="nav-item" data-page="page-data">💾<span class="nav-label">数据管理</span></div>
+    <div class="nav-item" data-page="page-vehicles">🚗<span class="nav-label">车辆与人员</span></div>
+    <div class="nav-item" data-page="page-report">📈<span class="nav-label">报表分析</span></div>
+    <div class="nav-item" data-page="page-alerts">⚠️<span class="nav-label">告警中心</span><span id="alert-badge" class="badge-n">0</span></div>
+  </nav>
 
-  <aside>
-    <div class="tabs">
-      <div class="tab active" data-panel="panel-dash">📊 概览</div>
-      <div class="tab" data-panel="panel-tasks">📤 任务</div>
-      <div class="tab" data-panel="panel-data">💾 数据</div>
-      <div class="tab" data-panel="panel-report">📈 报表</div>
-      <div class="tab" data-panel="panel-vehicles">🚗 车辆</div>
-      <div class="tab" data-panel="panel-alerts">⚠️ 告警<span id="alert-badge" class="badge-n">0</span></div>
-    </div>
+  <main id="main">
 
-    <div id="panel-dash" class="panel">
-      <div class="stat-grid">
-        <div class="stat"><div class="k">采集车辆(采集中/总)</div><div class="v" id="stat-vehicles">-</div></div>
-        <div class="stat"><div class="k">采集点位</div><div class="v" id="stat-points">-</div></div>
-        <div class="stat"><div class="k">采集路线</div><div class="v" id="stat-paths">-</div></div>
-        <div class="stat"><div class="k">任务</div><div class="v" id="stat-tasks">-</div></div>
-        <div class="stat"><div class="k">轨迹点</div><div class="v" id="stat-tracks">-</div></div>
-        <div class="stat"><div class="k">覆盖率</div><div class="v" id="stat-coverage">-</div></div>
-        <div class="stat"><div class="k">数据包(质检通过/总)</div><div class="v" id="stat-datasets">-</div></div>
-        <div class="stat"><div class="k">数据总量</div><div class="v" id="stat-databytes">-</div></div>
+    <!-- 实时监控（地图） -->
+    <section id="page-map" class="page active">
+      <div id="map"></div>
+      <div class="map-kpis">
+        <div class="kpi-mini"><div class="k">采集中/总车辆</div><div class="v" id="stat-vehicles">-</div></div>
+        <div class="kpi-mini"><div class="k">执行中任务</div><div class="v" id="stat-tasks-mini">-</div></div>
+        <div class="kpi-mini"><div class="k">今日轨迹点</div><div class="v" id="stat-tracks-mini">-</div></div>
       </div>
-      <h3>数据导出</h3>
-      <div class="row">
-        <button id="btn-export-csv">⬇ 点位 CSV</button>
-        <button id="btn-export-geojson">⬇ GeoJSON</button>
+      <div id="map-panel" class="map-panel">
+        <div class="map-panel-head">在线车辆 <button id="map-panel-toggle" class="icon-btn" title="收起">»</button></div>
+        <div id="live-vehicle-list" class="map-panel-body"></div>
       </div>
-    </div>
+      <button id="map-panel-open" class="map-panel-opener" style="display:none" title="展开车辆面板">«</button>
+    </section>
 
-    <div id="panel-tasks" class="panel" style="display:none">
-      <details class="sec">
-      <summary>＋ 新建任务</summary>
-      <input id="task-name" placeholder="任务名称，如：晚高峰路口采集">
-      <select id="task-vehicle"><option value="">自动分配</option></select>
-      <select id="task-path"><option value="">选择路线</option></select>
-      <div class="row">
-        <select id="task-driver"><option value="">选择采集员</option></select>
-        <select id="task-sensor"><option value="">传感器配置</option></select>
+    <!-- 概览仪表盘 -->
+    <section id="page-dash" class="page">
+      <div class="page-head"><h2>概览仪表盘</h2>
+        <div class="head-actions">
+          <button id="btn-export-csv" class="ghost">⬇ 点位 CSV</button>
+          <button id="btn-export-geojson" class="ghost">⬇ GeoJSON</button>
+        </div>
       </div>
-      <select id="task-priority">
-        <option value="low">低优先级</option>
-        <option value="normal" selected>中优先级</option>
-        <option value="high">高优先级</option>
-        <option value="urgent">紧急</option>
-      </select>
-      <input id="task-event-rules" placeholder="事件触发（可选）：AEB:10:30 = 触发前10s后30s">
-      <button id="btn-create-task" class="primary">＋ 创建任务</button>
-      </details>
-      <details class="sec">
-      <summary>📦 采集活动（批量任务）</summary>
-      <input id="camp-name" placeholder="活动名称，如：Q3 雨天专项">
-      <div class="row">
-        <select id="camp-path"><option value="">选择路线</option></select>
-        <select id="camp-sensor"><option value="">传感器配置</option></select>
+      <div class="kpi-row">
+        <div class="kpi"><div class="k">采集车辆（采集中/总）</div><div class="v" id="stat-vehicles2">-</div></div>
+        <div class="kpi"><div class="k">任务</div><div class="v" id="stat-tasks">-</div></div>
+        <div class="kpi"><div class="k">数据包（质检通过/总）</div><div class="v" id="stat-datasets">-</div></div>
+        <div class="kpi"><div class="k">数据总量</div><div class="v" id="stat-databytes">-</div></div>
       </div>
-      <div id="camp-vehicles" class="t-meta" style="margin:4px 0"></div>
-      <button id="btn-create-camp" class="primary">＋ 创建活动并批量生成任务</button>
-      </details>
-      <h3>任务列表</h3>
-      <div id="task-list"></div>
-    </div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="k">采集点位</div><div class="v" id="stat-points">-</div></div>
+        <div class="kpi"><div class="k">采集路线</div><div class="v" id="stat-paths">-</div></div>
+        <div class="kpi"><div class="k">轨迹点</div><div class="v" id="stat-tracks">-</div></div>
+        <div class="kpi"><div class="k">覆盖网格</div><div class="v" id="stat-coverage">-</div></div>
+      </div>
+      <div class="card">
+        <h3>近 14 天趋势</h3>
+        <div id="dash-charts" class="chart-grid"></div>
+      </div>
+      <div class="card">
+        <h3>最近告警</h3>
+        <div id="dash-alerts"></div>
+      </div>
+    </section>
 
-    <div id="panel-data" class="panel" style="display:none">
-      <details class="sec">
-      <summary>＋ 新建数据包</summary>
-      <input id="ds-name" placeholder="数据包名称，如：晚高峰路口-batch01">
-      <select id="ds-task"><option value="">不关联任务</option></select>
-      <div class="row">
-        <input id="ds-tags" placeholder="标签，逗号分隔：雨天,路口">
-        <button id="btn-create-ds" class="primary">＋ 创建</button>
+    <!-- 任务管理 -->
+    <section id="page-tasks" class="page">
+      <div class="page-head"><h2>任务管理</h2>
+        <div class="head-actions">
+          <button id="open-camp-drawer" class="ghost">📦 采集活动</button>
+          <button id="open-task-drawer" class="primary">＋ 新建任务</button>
+        </div>
       </div>
-      </details>
-      <h3>数据包检索</h3>
-      <div class="row">
-        <input id="ds-keyword" placeholder="关键字搜索">
+      <div class="filter-bar">
+        <select id="task-status-filter">
+          <option value="">全部状态</option>
+          <option value="pending">待下发</option>
+          <option value="running">执行中</option>
+          <option value="done">已完成</option>
+          <option value="cancelled">已取消</option>
+        </select>
+      </div>
+      <div class="card table-card">
+        <table class="tbl">
+          <thead><tr><th>ID</th><th>任务名称</th><th>状态</th><th>进度</th><th>优先级</th><th>车辆</th><th>采集员</th><th>路线</th><th>其他</th><th class="op">操作</th></tr></thead>
+          <tbody id="task-tbody"></tbody>
+        </table>
+        <div id="task-empty" class="empty" style="display:none">暂无任务，点击右上角「＋ 新建任务」创建</div>
+      </div>
+    </section>
+
+    <!-- 数据管理 -->
+    <section id="page-data" class="page">
+      <div class="page-head"><h2>数据管理</h2>
+        <div class="head-actions">
+          <button id="open-ds-drawer" class="primary">＋ 新建数据包</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <input id="ds-keyword" placeholder="🔍 关键字搜索" style="width:200px">
         <select id="ds-status-filter">
           <option value="">全部状态</option>
           <option value="uploading">回传中</option>
@@ -111,8 +129,6 @@
           <option value="qc_failed">质检未通过</option>
           <option value="archived">已归档</option>
         </select>
-      </div>
-      <div class="row">
         <select id="ds-tag-filter"><option value="">全部标签</option></select>
         <select id="ds-event-filter">
           <option value="">全部事件</option>
@@ -121,51 +137,214 @@
           <option value="cutin">切入触发</option>
         </select>
       </div>
-      <div id="ds-list"></div>
-    </div>
-
-    <div id="panel-vehicles" class="panel" style="display:none">
-      <h3>车辆状态</h3>
-      <div id="vehicle-list"></div>
-      <p class="hint">点击地图上的 🚗 可查看详情并回放轨迹</p>
-      <h3>采集员</h3>
-      <div id="driver-list"></div>
-      <div class="row">
-        <input id="drv-name" placeholder="姓名">
-        <input id="drv-phone" placeholder="电话">
-        <button id="btn-add-driver">＋</button>
+      <div class="card table-card">
+        <table class="tbl">
+          <thead><tr><th>ID</th><th>数据包</th><th>状态</th><th>来源</th><th>文件</th><th>大小</th><th>质检</th><th>标签</th><th class="op">操作</th></tr></thead>
+          <tbody id="ds-tbody"></tbody>
+        </table>
+        <div id="ds-empty" class="empty" style="display:none">暂无数据包</div>
       </div>
-      <h3>存储水位</h3>
-      <div id="storage-box" class="t-meta"></div>
-    </div>
+    </section>
 
-    <div id="panel-report" class="panel" style="display:none">
-      <h3>近 14 天趋势</h3>
-      <div id="report-charts"></div>
-      <details class="sec">
-      <summary>⚙️ 质检规则配置</summary>
-      <div class="form-line"><label>丢帧率阈值 %</label><input id="qc-drop" type="number" step="0.1"></div>
-      <div class="form-line"><label>时间同步阈值 ms</label><input id="qc-sync" type="number" step="0.5"></div>
-      <div class="form-line"><label>及格分数</label><input id="qc-pass" type="number"></div>
-      <button id="qc-save-rules" class="primary">保存质检规则</button>
-      </details>
-      <details class="sec">
-      <summary>🗄 数据保留策略</summary>
-      <div class="form-line"><input id="ret-days" type="number"><label>天未消费自动归档</label></div>
-      <div class="row">
-        <button id="ret-save" class="primary">保存</button>
-        <button id="ret-apply" class="ghost">立即执行</button>
+    <!-- 车辆与人员 -->
+    <section id="page-vehicles" class="page">
+      <div class="page-head"><h2>车辆与人员</h2>
+        <div class="head-actions">
+          <button id="open-driver-drawer" class="primary">＋ 添加采集员</button>
+        </div>
       </div>
-      </details>
-      <h3>操作审计日志</h3>
-      <div id="audit-list" style="max-height:220px;overflow-y:auto"></div>
-    </div>
+      <div class="col2">
+        <div class="card">
+          <h3>车辆状态</h3>
+          <div id="vehicle-list"></div>
+          <p class="hint">在「实时监控」页点击地图上的 🚗 可查看详情并回放轨迹</p>
+        </div>
+        <div class="card">
+          <h3>采集员</h3>
+          <div id="driver-list"></div>
+          <h3 style="margin-top:16px">存储水位</h3>
+          <div id="storage-box" class="t-meta"></div>
+        </div>
+      </div>
+    </section>
 
-    <div id="panel-alerts" class="panel" style="display:none">
-      <h3>告警消息</h3>
-      <div id="alert-list"></div>
+    <!-- 报表分析 -->
+    <section id="page-report" class="page">
+      <div class="page-head"><h2>报表分析</h2></div>
+      <div class="card">
+        <h3>近 14 天趋势</h3>
+        <div id="report-charts" class="chart-grid"></div>
+      </div>
+      <div class="col2">
+        <div class="card">
+          <h3>质检规则配置</h3>
+          <div class="form-line"><label>丢帧率阈值 %</label><input id="qc-drop" type="number" step="0.1"></div>
+          <div class="form-line"><label>时间同步阈值 ms</label><input id="qc-sync" type="number" step="0.5"></div>
+          <div class="form-line"><label>及格分数</label><input id="qc-pass" type="number"></div>
+          <button id="qc-save-rules" class="primary">保存质检规则</button>
+        </div>
+        <div class="card">
+          <h3>数据保留策略</h3>
+          <div class="form-line"><input id="ret-days" type="number"><label>天未消费自动归档</label></div>
+          <div class="row">
+            <button id="ret-save" class="primary">保存</button>
+            <button id="ret-apply" class="ghost">立即执行</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>操作审计日志</h3>
+        <div id="audit-list" style="max-height:280px;overflow-y:auto"></div>
+      </div>
+    </section>
+
+    <!-- 告警中心 -->
+    <section id="page-alerts" class="page">
+      <div class="page-head"><h2>告警中心</h2></div>
+      <div class="card"><div id="alert-list"></div></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ Drawers ============ -->
+<div id="drawer-mask" class="drawer-mask"></div>
+
+<!-- 新建任务 Drawer -->
+<div id="drawer-task" class="drawer">
+  <div class="drawer-head"><b>＋ 新建采集任务</b><button class="icon-btn drawer-close">✕</button></div>
+  <div class="drawer-body">
+    <label>任务名称 *</label>
+    <input id="task-name" placeholder="如：晚高峰路口采集">
+    <label>采集车辆</label>
+    <select id="task-vehicle"><option value="">自动分配</option></select>
+    <label>采集路线</label>
+    <select id="task-path"><option value="">选择路线</option></select>
+    <label>采集员</label>
+    <select id="task-driver"><option value="">选择采集员</option></select>
+    <label>传感器配置</label>
+    <select id="task-sensor"><option value="">传感器配置</option></select>
+    <label>优先级</label>
+    <select id="task-priority">
+      <option value="low">低优先级</option>
+      <option value="normal" selected>中优先级</option>
+      <option value="high">高优先级</option>
+      <option value="urgent">紧急</option>
+    </select>
+    <label>事件触发规则（可选）</label>
+    <input id="task-event-rules" placeholder="AEB:10:30 = 触发前10s后30s，逗号分隔多条">
+  </div>
+  <div class="drawer-foot">
+    <button class="ghost drawer-close">取消</button>
+    <button id="btn-create-task" class="primary">创建任务</button>
+  </div>
+</div>
+
+<!-- 采集活动 Drawer -->
+<div id="drawer-camp" class="drawer">
+  <div class="drawer-head"><b>📦 新建采集活动（批量任务）</b><button class="icon-btn drawer-close">✕</button></div>
+  <div class="drawer-body">
+    <label>活动名称 *</label>
+    <input id="camp-name" placeholder="如：Q3 雨天专项">
+    <label>采集路线</label>
+    <select id="camp-path"><option value="">选择路线</option></select>
+    <label>传感器配置</label>
+    <select id="camp-sensor"><option value="">传感器配置</option></select>
+    <label>参与车辆 *（每辆车生成一个任务）</label>
+    <div id="camp-vehicles" class="check-group"></div>
+  </div>
+  <div class="drawer-foot">
+    <button class="ghost drawer-close">取消</button>
+    <button id="btn-create-camp" class="primary">创建活动并批量生成任务</button>
+  </div>
+</div>
+
+<!-- 新建数据包 Drawer -->
+<div id="drawer-newds" class="drawer">
+  <div class="drawer-head"><b>＋ 新建数据包</b><button class="icon-btn drawer-close">✕</button></div>
+  <div class="drawer-body">
+    <label>数据包名称 *</label>
+    <input id="ds-name" placeholder="如：晚高峰路口-batch01">
+    <label>关联任务</label>
+    <select id="ds-task"><option value="">不关联任务</option></select>
+    <label>标签（逗号分隔）</label>
+    <input id="ds-tags" placeholder="雨天,路口">
+  </div>
+  <div class="drawer-foot">
+    <button class="ghost drawer-close">取消</button>
+    <button id="btn-create-ds" class="primary">创建</button>
+  </div>
+</div>
+
+<!-- 添加采集员 Drawer -->
+<div id="drawer-driver" class="drawer">
+  <div class="drawer-head"><b>＋ 添加采集员</b><button class="icon-btn drawer-close">✕</button></div>
+  <div class="drawer-body">
+    <label>姓名 *</label>
+    <input id="drv-name" placeholder="姓名">
+    <label>电话</label>
+    <input id="drv-phone" placeholder="电话">
+  </div>
+  <div class="drawer-foot">
+    <button class="ghost drawer-close">取消</button>
+    <button id="btn-add-driver" class="primary">添加</button>
+  </div>
+</div>
+
+<!-- 数据包详情 Drawer -->
+<div id="drawer-ds" class="drawer drawer-wide">
+  <div class="drawer-head"><b id="ds-title">💾 数据包</b><button class="icon-btn drawer-close" id="ds-close">✕</button></div>
+  <div class="drawer-body">
+    <div id="ds-meta" class="t-meta"></div>
+    <div class="row" style="margin:10px 0">
+      <select id="ds-priority">
+        <option value="low">低优先级</option>
+        <option value="normal">中优先级</option>
+        <option value="high">高优先级</option>
+      </select>
+      <button id="ds-anonymize">🔒 执行脱敏</button>
+      <span id="ds-anon-state" class="t-meta" style="align-self:center;white-space:nowrap"></span>
     </div>
-  </aside>
+    <div class="row">
+      <input id="ds-edit-tags" placeholder="标签，逗号分隔">
+      <button id="ds-save-tags">保存标签</button>
+    </div>
+    <div class="drawer-tabs">
+      <div class="dtab active" data-dt="dt-files">文件</div>
+      <div class="dtab" data-dt="dt-qc">质检</div>
+      <div class="dtab" data-dt="dt-lineage">血缘</div>
+    </div>
+    <div id="dt-files" class="dt-pane active">
+      <div id="ds-files" style="max-height:260px;overflow-y:auto;margin-bottom:8px"></div>
+      <input type="file" id="ds-file-input" multiple>
+      <div id="ds-upload-progress" style="display:none;margin:6px 0">
+        <div class="prog"><div id="ds-progress-bar" class="prog-in" style="background:#2d8cf0"></div></div>
+        <small id="ds-progress-text"></small>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="ds-upload" class="primary">⬆ 上传文件（支持断点续传）</button>
+      </div>
+    </div>
+    <div id="dt-qc" class="dt-pane">
+      <div id="ds-qc-report"></div>
+      <button id="ds-run-qc" class="primary" style="margin-top:8px">🔍 运行质检</button>
+    </div>
+    <div id="dt-lineage" class="dt-pane">
+      <div id="ds-lineage" style="max-height:180px;overflow-y:auto;margin-bottom:8px"></div>
+      <div class="row">
+        <select id="ds-consumer-type" style="max-width:120px">
+          <option>标注平台</option><option>训练平台</option><option>仿真平台</option><option>外部交付</option>
+        </select>
+        <input id="ds-consumer-note" placeholder="备注（可选）">
+        <button id="ds-add-consumer">＋ 记录</button>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button id="ds-manifest" class="ghost">📄 导出清单</button>
+    <button id="ds-zip" class="ghost">📦 打包下载</button>
+    <button id="ds-archive" class="ghost">🗄 归档</button>
+  </div>
 </div>
 
 <!-- point form modal -->
@@ -204,54 +383,6 @@
   <div class="row">
     <button id="att-upload" class="primary">⬆ 上传</button>
     <button id="att-close" class="ghost">关闭</button>
-  </div>
-</div>
-
-<!-- dataset detail modal -->
-<div id="ds-modal" class="modal" style="width:520px;max-width:92vw">
-  <h3 id="ds-title">💾 数据包</h3>
-  <div id="ds-meta" class="t-meta" style="margin-bottom:8px"></div>
-  <div class="row">
-    <select id="ds-priority" style="width:110px">
-      <option value="low">低优先级</option>
-      <option value="normal">中优先级</option>
-      <option value="high">高优先级</option>
-    </select>
-    <button id="ds-anonymize">🔒 执行脱敏</button>
-    <span id="ds-anon-state" class="t-meta" style="align-self:center"></span>
-  </div>
-  <div class="row">
-    <input id="ds-edit-tags" placeholder="标签，逗号分隔">
-    <button id="ds-save-tags">保存标签</button>
-  </div>
-  <div id="ds-qc-report" style="margin:8px 0"></div>
-  <h3 style="margin-top:8px">文件列表</h3>
-  <div id="ds-files" style="max-height:200px;overflow-y:auto;margin-bottom:8px"></div>
-  <input type="file" id="ds-file-input" multiple>
-  <div id="ds-upload-progress" style="display:none;margin:6px 0">
-    <div style="background:#eee;border-radius:4px;overflow:hidden;height:8px">
-      <div id="ds-progress-bar" style="height:8px;width:0;background:#2d8cf0;transition:width .2s"></div>
-    </div>
-    <small id="ds-progress-text"></small>
-  </div>
-  <div class="row">
-    <button id="ds-upload" class="primary">⬆ 上传文件</button>
-    <button id="ds-run-qc">🔍 运行质检</button>
-    <button id="ds-close" class="ghost">关闭</button>
-  </div>
-  <div class="row" style="margin-top:6px">
-    <button id="ds-manifest" class="ghost">📄 导出清单</button>
-    <button id="ds-zip" class="ghost">📦 打包下载</button>
-    <button id="ds-archive" class="ghost">🗄 归档</button>
-  </div>
-  <h3 style="margin-top:8px">数据血缘（下游消费）</h3>
-  <div id="ds-lineage" style="max-height:100px;overflow-y:auto;margin-bottom:6px"></div>
-  <div class="row">
-    <select id="ds-consumer-type" style="width:110px">
-      <option>标注平台</option><option>训练平台</option><option>仿真平台</option><option>外部交付</option>
-    </select>
-    <input id="ds-consumer-note" placeholder="备注（可选）">
-    <button id="ds-add-consumer">＋ 记录</button>
   </div>
 </div>
 
